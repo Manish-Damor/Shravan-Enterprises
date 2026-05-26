@@ -1,0 +1,206 @@
+import { categories as fallbackCategories, type Category as FallbackCategory } from "@/lib/products-data";
+
+export type PublicCategory = {
+  id: string | null;
+  slug: string;
+  title: string;
+  tagline: string;
+  image: string;
+  items: string[];
+  status?: string;
+  sort_order?: number;
+};
+
+export type PublicProduct = {
+  id: string | null;
+  slug: string;
+  name: string;
+  subtitle: string | null;
+  category_id: string | null;
+  category_slug: string | null;
+  category_title: string | null;
+  featured: boolean;
+  image: string | null;
+  short_description: string | null;
+  detailed_description: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type PublicCatalog = {
+  categories: PublicCategory[];
+  products: PublicProduct[];
+  counts: {
+    categories: number;
+    products: number;
+    enquiries: number;
+  };
+};
+
+export type PublicEnquiryInput = {
+  customer_name: string;
+  company?: string;
+  mobile: string;
+  email?: string;
+  subject?: string;
+  message: string;
+  product_id?: string | null;
+  category_id?: string | null;
+};
+
+const API_BASE_URL = import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ?? "";
+
+const fallbackBySlug = new Map(fallbackCategories.map((category) => [category.slug, category]));
+
+function toAbsoluteApiUrl(path: string) {
+  if (!API_BASE_URL) return null;
+  return new URL(path, API_BASE_URL).toString();
+}
+
+function fallbackCategoryImage(slug: string) {
+  return fallbackBySlug.get(slug)?.image ?? "";
+}
+
+function fallbackCatalog(): PublicCatalog {
+  return {
+    categories: fallbackCategories.map((category) => ({
+      id: null,
+      slug: category.slug,
+      title: category.title,
+      tagline: category.tagline,
+      image: category.image,
+      items: [...category.items],
+      status: "active",
+      sort_order: 0,
+    })),
+    products: [],
+    counts: {
+      categories: fallbackCategories.length,
+      products: 0,
+      enquiries: 0,
+    },
+  };
+}
+
+function normalizeCategory(value: unknown): PublicCategory | null {
+  if (!value || typeof value !== "object") return null;
+  const category = value as Record<string, unknown>;
+  const title = String(category.title ?? category.name ?? "").trim();
+  const slug = String(category.slug ?? "").trim();
+  if (!title || !slug) return null;
+
+  const fallback = fallbackBySlug.get(slug);
+  const items = Array.isArray(category.items)
+    ? category.items.map((item) => String(item).trim()).filter(Boolean)
+    : fallback
+      ? [...fallback.items]
+      : [];
+
+  return {
+    id: category.id ? String(category.id) : null,
+    slug,
+    title,
+    tagline: String(category.tagline ?? category.short_description ?? category.description ?? fallback?.tagline ?? "").trim(),
+    image: String(category.image ?? fallbackCategoryImage(slug) ?? ""),
+    items,
+    status: typeof category.status === "string" ? category.status : "active",
+    sort_order: typeof category.sort_order === "number" ? category.sort_order : 0,
+  };
+}
+
+function normalizeProduct(value: unknown): PublicProduct | null {
+  if (!value || typeof value !== "object") return null;
+  const product = value as Record<string, unknown>;
+  const name = String(product.name ?? product.title ?? "").trim();
+  const slug = String(product.slug ?? "").trim();
+  if (!name || !slug) return null;
+
+  return {
+    id: product.id ? String(product.id) : null,
+    slug,
+    name,
+    subtitle: product.subtitle ? String(product.subtitle) : null,
+    category_id: product.category_id ? String(product.category_id) : null,
+    category_slug: product.category_slug ? String(product.category_slug) : null,
+    category_title: product.category_title ? String(product.category_title) : null,
+    featured: Boolean(product.featured),
+    image: product.image ? String(product.image) : null,
+    short_description: product.short_description ? String(product.short_description) : null,
+    detailed_description: product.detailed_description ? String(product.detailed_description) : null,
+    createdAt: product.createdAt ? String(product.createdAt) : null,
+    updatedAt: product.updatedAt ? String(product.updatedAt) : null,
+  };
+}
+
+async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const url = toAbsoluteApiUrl(path);
+  if (!url) {
+    throw new Error("Set VITE_PUBLIC_API_BASE_URL to connect the public website to the backend.");
+  }
+
+  const headers: Record<string, string> = {};
+  if (init?.body != null) {
+    headers["content-type"] = "application/json";
+  }
+
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      ...headers,
+      ...(init?.headers as Record<string, string> | undefined),
+    },
+  });
+
+  const text = await response.text();
+  const payload = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new Error(payload?.message || response.statusText || "Request failed");
+  }
+
+  return payload as T;
+}
+
+export async function fetchPublicCatalog(): Promise<PublicCatalog> {
+  try {
+    const payload = await requestJson<{
+      categories?: unknown[];
+      products?: unknown[];
+      counts?: Partial<PublicCatalog["counts"]>;
+    }>("/api/public/catalog");
+
+    const categories = (payload.categories ?? []).map(normalizeCategory).filter((item): item is PublicCategory => item !== null);
+    const products = (payload.products ?? []).map(normalizeProduct).filter((item): item is PublicProduct => item !== null);
+
+    if (categories.length === 0) {
+      return fallbackCatalog();
+    }
+
+    return {
+      categories,
+      products,
+      counts: {
+        categories: payload.counts?.categories ?? categories.length,
+        products: payload.counts?.products ?? products.length,
+        enquiries: payload.counts?.enquiries ?? 0,
+      },
+    };
+  } catch {
+    return fallbackCatalog();
+  }
+}
+
+export async function submitPublicEnquiry(input: PublicEnquiryInput) {
+  return requestJson<{ success: boolean; id: string }>("/api/public/enquiries", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getFallbackCatalog() {
+  return fallbackCatalog();
+}
+
+export function asFallbackPublicCategories() {
+  return fallbackCatalog().categories;
+}

@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowRight, Shield, Factory, Award, Truck, Sparkles, CheckCircle2, Quote, Star } from "lucide-react";
 import heroImg from "@/assets/hero-industrial.jpg";
+import { useQuery } from "@tanstack/react-query";
 import { SectionHeader } from "@/components/site/SectionHeader";
-import { categories } from "@/lib/products-data";
+import { fetchPublicCatalog, getFallbackCatalog } from "@/lib/catalog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,6 +42,17 @@ const testimonials = [
 ];
 
 function Home() {
+  const { data: catalog } = useQuery({ queryKey: ["public-catalog"], queryFn: fetchPublicCatalog, staleTime: 5 * 60 * 1000 });
+  const activeCatalog = catalog ?? getFallbackCatalog();
+  const categories = activeCatalog.categories;
+
+  const stats = [
+    { value: "7+", label: "Years of Experience" },
+    { value: `${activeCatalog.counts.categories}+`, label: "Product Categories" },
+    { value: `${activeCatalog.counts.products}+`, label: "Published Products" },
+    { value: "20+", label: "Supply Network Cities" },
+  ];
+
   return (
     <>
       {/* HERO */}

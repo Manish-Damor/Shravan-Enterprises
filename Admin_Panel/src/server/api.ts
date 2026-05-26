@@ -101,11 +101,145 @@ function normalizeIdentifier(value: string) {
   return { email: trimmed.toLowerCase() };
 }
 
+function slugifyText(value: string) {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function extractMediaUrl(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const media = value as Record<string, unknown>;
+  const url = media.url;
+  return typeof url === "string" && url.trim() ? url : null;
+}
+
+async function handlePublicRoutes(request: Request, pathname: string) {
+  const { categories, products, enquiries } = await getMongoCollections();
+
+  if (pathname === "/api/public/catalog" && request.method === "GET") {
+    const [categoryDocs, productDocs] = await Promise.all([
+      categories
+        .find({ $or: [{ status: { $ne: "inactive" } }, { status: { $exists: false } }] })
+        .sort({ sort_order: 1, createdAt: -1 })
+        .toArray(),
+      products
+        .find({ status: "published" })
+        .sort({ sort_order: 1, createdAt: -1 })
+        .toArray(),
+    ]);
+
+    const categoryById = new Map<string, Record<string, any>>();
+    for (const category of categoryDocs) {
+      if (category?._id) {
+        categoryById.set(category._id.toString(), category);
+      }
+    }
+
+    const productsByCategoryId = new Map<string, Record<string, any>[]>();
+    for (const product of productDocs) {
+      const categoryId = product.category_id ? String(product.category_id) : null;
+      if (!categoryId) continue;
+      const list = productsByCategoryId.get(categoryId) ?? [];
+      list.push(product);
+      productsByCategoryId.set(categoryId, list);
+    }
+
+    const publicCategories = categoryDocs.map((category) => {
+      const categoryId = category._id?.toString?.() ?? null;
+      const relatedProducts = categoryId ? productsByCategoryId.get(categoryId) ?? [] : [];
+      const title = String(category.name ?? category.title ?? "Category");
+      const slug = String(category.slug ?? slugifyText(title));
+      const image = extractMediaUrl(category.banner_image) ?? extractMediaUrl(category.icon);
+
+      return {
+        id: categoryId,
+        slug,
+        title,
+        tagline: String(category.short_description ?? category.description ?? ""),
+        image,
+        items: relatedProducts
+          .map((product) => String(product.name ?? product.title ?? ""))
+          .filter(Boolean),
+        status: category.status ?? "active",
+        sort_order: category.sort_order ?? 0,
+      };
+    });
+
+    const publicProducts = productDocs.map((product) => {
+      const category = product.category_id ? categoryById.get(String(product.category_id)) : undefined;
+      const title = String(product.name ?? product.title ?? "Product");
+
+      return {
+        id: product._id?.toString?.() ?? null,
+        slug: String(product.slug ?? slugifyText(title)),
+        name: title,
+        subtitle: product.subtitle ?? null,
+        category_id: product.category_id ?? null,
+        category_slug: category?.slug ?? null,
+        category_title: category?.name ?? null,
+        featured: Boolean(product.featured),
+        image: extractMediaUrl(product.image) ?? extractMediaUrl(product.og_image),
+        short_description: product.short_description ?? null,
+        detailed_description: product.detailed_description ?? null,
+        createdAt: product.createdAt ?? null,
+        updatedAt: product.updatedAt ?? null,
+      };
+    });
+
+    return jsonResponse({
+      categories: publicCategories,
+      products: publicProducts,
+      counts: {
+        categories: publicCategories.length,
+        products: publicProducts.length,
+        enquiries: 0,
+      },
+    });
+  }
+
+  if (pathname === "/api/public/enquiries" && request.method === "POST") {
+    const body = await request.json();
+    const customerName = String(body.customer_name ?? body.name ?? "").trim();
+    const mobile = String(body.mobile ?? body.phone ?? "").trim();
+    const email = String(body.email ?? "").trim().toLowerCase() || null;
+    const company = String(body.company ?? "").trim() || null;
+    const subject = String(body.subject ?? body.product_name ?? "").trim() || null;
+    const message = String(body.message ?? "").trim();
+
+    if (!customerName || !mobile || !message) {
+      return errorResponse("Name, mobile number, and message are required.");
+    }
+
+    const now = new Date().toISOString();
+    const result = await enquiries.insertOne({
+      customer_name: customerName,
+      mobile,
+      email,
+      company,
+      product_name: subject,
+      product_id: body.product_id ?? null,
+      category_id: body.category_id ?? null,
+      message,
+      status: "new",
+      reply_note: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return jsonResponse({ success: true, id: result.insertedId.toString() }, 201);
+  }
+
+  return errorResponse("Not found", 404);
+}
+
 export async function handleApiRequest(request: Request) {
   const url = new URL(request.url);
   const pathname = url.pathname.replace(/\/+$/, "");
 
   try {
+    if (pathname.startsWith("/api/public/")) {
+      return await handlePublicRoutes(request, pathname);
+    }
+
     if (pathname.startsWith("/api/auth")) {
       return await handleAuthRoutes(request, pathname);
     }

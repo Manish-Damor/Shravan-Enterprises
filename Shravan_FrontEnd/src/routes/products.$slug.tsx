@@ -1,14 +1,16 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, Download, MessageCircle, Send } from "lucide-react";
-import { categories, type Category } from "@/lib/products-data";
+import { fetchPublicCatalog } from "@/lib/catalog";
 import { SectionHeader } from "@/components/site/SectionHeader";
 
 export const Route = createFileRoute("/products/$slug")({
-  loader: ({ params }): Category => {
-    const cat = categories.find((c) => c.slug === params.slug);
-    if (!cat) throw notFound();
-    return cat;
+  loader: async ({ params }) => {
+    const catalog = await fetchPublicCatalog();
+    const category = catalog.categories.find((c) => c.slug === params.slug);
+    if (!category) throw notFound();
+    const items = catalog.products.filter((product) => product.category_slug === category.slug).map((product) => product.name);
+    return { catalog, category, items };
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -36,14 +38,15 @@ export const Route = createFileRoute("/products/$slug")({
 });
 
 function ProductCategory() {
-  const cat = Route.useLoaderData();
-  const related = categories.filter((c) => c.slug !== cat.slug).slice(0, 3);
+  const { catalog, category, items } = Route.useLoaderData();
+  const related = catalog.categories.filter((current) => current.slug !== category.slug).slice(0, 3);
+  const displayItems = items.length > 0 ? items : category.items;
 
   return (
     <>
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img src={cat.image} alt={cat.title} className="w-full h-full object-cover" width={1280} height={896} />
+          <img src={category.image} alt={category.title} className="w-full h-full object-cover" width={1280} height={896} />
           <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, oklch(0.14 0.04 155 / 0.92), oklch(0.36 0.09 155 / 0.7))" }} />
         </div>
         <div className="relative container mx-auto px-6 py-28 md:py-36 text-primary-foreground">
@@ -51,9 +54,9 @@ function ProductCategory() {
             <ArrowLeft className="w-4 h-4" /> All Products
           </Link>
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="text-5xl md:text-7xl font-bold leading-[1.05] max-w-3xl">
-            {cat.title}
+            {category.title}
           </motion.h1>
-          <p className="mt-5 text-lg md:text-xl text-white/80 max-w-2xl">{cat.tagline}</p>
+          <p className="mt-5 text-lg md:text-xl text-white/80 max-w-2xl">{category.tagline}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href="https://wa.me/919824124043" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-primary font-semibold shadow-elegant hover:scale-105 transition-smooth">
               <MessageCircle className="w-4 h-4" /> WhatsApp Inquiry
@@ -73,11 +76,11 @@ function ProductCategory() {
           <div className="grid lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2">
               <div className="text-xs font-semibold tracking-[0.2em] uppercase text-primary mb-4">Range Includes</div>
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground">All {cat.items.length} products in this category</h2>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground">All {displayItems.length} products in this category</h2>
               <p className="mt-4 text-muted-foreground leading-relaxed">Curated, ISO-grade materials carefully selected for performance, consistency and long-term reliability in industrial applications.</p>
 
               <div className="mt-10 grid sm:grid-cols-2 gap-4">
-                {cat.items.map((item: string, i: number) => (
+                {displayItems.map((item: string, i: number) => (
                   <motion.div
                     key={item}
                     initial={{ opacity: 0, y: 15 }}
@@ -106,7 +109,7 @@ function ProductCategory() {
                   <input required maxLength={100} placeholder="Your Name" className="w-full px-4 py-3 rounded-lg bg-secondary/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                   <input required type="tel" maxLength={20} placeholder="Phone Number" className="w-full px-4 py-3 rounded-lg bg-secondary/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                   <input required type="email" maxLength={255} placeholder="Email" className="w-full px-4 py-3 rounded-lg bg-secondary/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  <textarea rows={3} maxLength={1000} placeholder={`Interested in ${cat.title}...`} className="w-full px-4 py-3 rounded-lg bg-secondary/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
+                  <textarea rows={3} maxLength={1000} placeholder={`Interested in ${category.title}...`} className="w-full px-4 py-3 rounded-lg bg-secondary/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
                   <button type="submit" className="w-full py-3 rounded-lg gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition-smooth">
                     Send Inquiry
                   </button>

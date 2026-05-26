@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { PageHero } from "@/components/site/PageHero";
-import { categories } from "@/lib/products-data";
+import { fetchPublicCatalog, getFallbackCatalog } from "@/lib/catalog";
 
 export const Route = createFileRoute("/products")({
   head: () => ({
@@ -18,6 +19,9 @@ export const Route = createFileRoute("/products")({
 });
 
 function Products() {
+  const { data: catalog } = useQuery({ queryKey: ["public-catalog"], queryFn: fetchPublicCatalog, staleTime: 5 * 60 * 1000 });
+  const categories = catalog?.categories ?? getFallbackCatalog().categories;
+
   return (
     <>
       <PageHero eyebrow="Our Products" title="A complete catalog for industrial excellence." description="Premium raw materials, consumables and accessories across 5 specialized categories." />

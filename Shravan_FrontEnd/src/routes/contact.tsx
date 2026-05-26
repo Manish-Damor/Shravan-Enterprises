@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Clock, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { PageHero } from "@/components/site/PageHero";
+import { submitPublicEnquiry } from "@/lib/catalog";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -26,6 +27,39 @@ const details = [
 
 function Contact() {
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+    setErrorMessage(null);
+
+    const formData = new FormData(event.currentTarget);
+    const customer_name = String(formData.get("name") ?? "").trim();
+    const company = String(formData.get("company") ?? "").trim();
+    const mobile = String(formData.get("phone") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const subject = String(formData.get("subject") ?? "").trim();
+    const message = String(formData.get("message") ?? "").trim();
+
+    try {
+      await submitPublicEnquiry({
+        customer_name,
+        company,
+        mobile,
+        email,
+        subject,
+        message: [company ? `Company: ${company}` : null, subject ? `Subject: ${subject}` : null, message].filter(Boolean).join("\n\n"),
+      });
+      setSent(true);
+      event.currentTarget.reset();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to send inquiry right now.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -42,15 +76,16 @@ function Contact() {
                 Thank you! Your inquiry has been noted. We'll get in touch shortly.
               </div>
             ) : (
-              <form className="mt-7 grid sm:grid-cols-2 gap-4" onSubmit={(e) => { e.preventDefault(); setSent(true); }}>
-                <input required maxLength={100} placeholder="Full Name" className="px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
-                <input required maxLength={150} placeholder="Company" className="px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
-                <input required type="tel" maxLength={20} placeholder="Phone" className="px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
-                <input required type="email" maxLength={255} placeholder="Email" className="px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
-                <input maxLength={200} placeholder="Subject" className="sm:col-span-2 px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
-                <textarea required rows={5} maxLength={1500} placeholder="Tell us about your requirement..." className="sm:col-span-2 px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
-                <button type="submit" className="sm:col-span-2 py-4 rounded-lg gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.01] transition-smooth">
-                  Send Inquiry
+              <form className="mt-7 grid sm:grid-cols-2 gap-4" onSubmit={handleSubmit}>
+                <input name="name" required maxLength={100} placeholder="Full Name" className="px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+                <input name="company" required maxLength={150} placeholder="Company" className="px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+                <input name="phone" required type="tel" maxLength={20} placeholder="Phone" className="px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+                <input name="email" required type="email" maxLength={255} placeholder="Email" className="px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+                <input name="subject" maxLength={200} placeholder="Subject" className="sm:col-span-2 px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary" />
+                <textarea name="message" required rows={5} maxLength={1500} placeholder="Tell us about your requirement..." className="sm:col-span-2 px-4 py-3 rounded-lg bg-secondary/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
+                {errorMessage ? <div className="sm:col-span-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div> : null}
+                <button type="submit" disabled={loading} className="sm:col-span-2 py-4 rounded-lg gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.01] transition-smooth disabled:opacity-70">
+                  {loading ? "Sending..." : "Send Inquiry"}
                 </button>
               </form>
             )}
