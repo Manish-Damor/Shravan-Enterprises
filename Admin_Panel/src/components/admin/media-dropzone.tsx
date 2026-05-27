@@ -78,7 +78,7 @@ export function MediaDropzone({
           {items.map((item, index) => (
             <div key={`${item.name}-${index}`} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="aspect-video bg-slate-50">
-                {item.type.startsWith("image/") ? (
+                {item.type?.startsWith?.("image/") ? (
                   <img src={item.url} alt={item.name} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center px-3 text-center text-xs text-slate-500">

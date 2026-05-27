@@ -211,7 +211,7 @@ function AccountPage() {
               {clients.map((client) => (
                 <div key={client.id} className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4">
                   <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
-                    {client.logo?.url && client.logo.type.startsWith("image/") ? <img src={client.logo.url} alt={client.name} className="h-full w-full object-cover" /> : <Users className="h-4 w-4 text-slate-400" />}
+                    {client.logo?.url && client.logo.type?.startsWith?.("image/") ? <img src={client.logo.url} alt={client.name} className="h-full w-full object-cover" /> : <Users className="h-4 w-4 text-slate-400" />}
                   </div>
                   <div className="min-w-0">
                     <div className="font-medium text-slate-950">{client.name ?? "Client"}</div>

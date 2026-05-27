@@ -237,7 +237,7 @@ function ProductsPage() {
     doc.text(form.subtitle || form.short_description || "Industrial product brochure", 14, 20);
     doc.setTextColor(17, 24, 39);
 
-    if (form.image?.url && form.image.type.startsWith("image/")) {
+    if (form.image?.url && form.image.type?.startsWith?.("image/")) {
       try {
         doc.addImage(form.image.url, "JPEG", pageWidth - 58, 28, 44, 44);
       } catch {
@@ -354,7 +354,7 @@ function ProductsPage() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
-                        {product.image?.url && product.image.type.startsWith("image/") ? (
+                        {product.image?.url && product.image.type?.startsWith?.("image/") ? (
                           <img src={product.image.url} alt={product.name} className="h-full w-full object-cover" />
                         ) : (
                           <Sparkles className="h-4 w-4 text-slate-400" />
@@ -716,7 +716,7 @@ function BrochurePreview({ form, categoryName }: { form: ProductForm; categoryNa
         </div>
         <div className="space-y-3">
           <div className="aspect-square overflow-hidden rounded-3xl bg-slate-100">
-            {form.image?.url && form.image.type.startsWith("image/") ? <img src={form.image.url} alt={form.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400">Product image</div>}
+            {form.image?.url && form.image.type?.startsWith?.("image/") ? <img src={form.image.url} alt={form.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-slate-400">Product image</div>}
           </div>
           <div className="rounded-3xl border border-slate-200 p-4 text-sm text-slate-600">
             <div className="font-medium text-slate-950">Document pack</div>

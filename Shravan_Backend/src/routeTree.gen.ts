@@ -8,16 +8,16 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root.tsx'
-import { Route as LoginRouteImport } from './routes/login.tsx'
-import { Route as AdminRouteImport } from './routes/admin.tsx'
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminIndexRouteImport } from './routes/admin.index.tsx'
-import { Route as AdminUsersRouteImport } from './routes/admin.users.tsx'
-import { Route as AdminProductsRouteImport } from './routes/admin.products.tsx'
-import { Route as AdminEnquiriesRouteImport } from './routes/admin.enquiries.tsx'
-import { Route as AdminCategoriesRouteImport } from './routes/admin.categories.tsx'
-import { Route as AdminAccountRouteImport } from './routes/admin.account.tsx'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminProductsRouteImport } from './routes/admin.products'
+import { Route as AdminEnquiriesRouteImport } from './routes/admin.enquiries'
+import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
+import { Route as AdminAccountRouteImport } from './routes/admin.account'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
