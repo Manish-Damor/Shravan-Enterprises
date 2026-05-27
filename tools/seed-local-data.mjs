@@ -1,7 +1,3 @@
-import { spawnSync } from 'child_process';
-const target = new URL('../../tools/seed-local-data.mjs', import.meta.url).pathname;
-const res = spawnSync(process.execPath, [target], { stdio: 'inherit' });
-process.exit(res.status || 0);
 import { MongoClient } from "mongodb";
 import { pbkdf2Sync, randomBytes } from "crypto";
 

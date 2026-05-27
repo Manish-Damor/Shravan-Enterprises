@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && node scripts/flatten-dist.mjs",
-    "prepare:assets": "node scripts/copy-brochure.mjs",
+    "build": "vite build && node ../tools/flatten-dist.mjs",
+    "prepare:assets": "node ../tools/copy-brochure.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

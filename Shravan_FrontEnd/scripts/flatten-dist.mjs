@@ -1,3 +1,7 @@
+import { spawnSync } from 'child_process';
+const target = new URL('../../tools/flatten-dist.mjs', import.meta.url).pathname;
+const res = spawnSync(process.execPath, [target], { stdio: 'inherit' });
+process.exit(res.status || 0);
 import { cp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";

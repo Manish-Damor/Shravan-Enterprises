@@ -19,7 +19,13 @@ export const Route = createFileRoute("/products")({
 });
 
 function Products() {
-  const { data: catalog } = useQuery({ queryKey: ["public-catalog"], queryFn: fetchPublicCatalog, staleTime: 5 * 60 * 1000 });
+  const { data: catalog } = useQuery({
+    queryKey: ["public-catalog"],
+    queryFn: fetchPublicCatalog,
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
   const categories = catalog?.categories ?? getFallbackCatalog().categories;
 
   return (
