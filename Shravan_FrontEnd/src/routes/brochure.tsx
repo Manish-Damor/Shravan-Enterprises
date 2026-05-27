@@ -5,6 +5,8 @@ import { useMemo, useState } from 'react'
 
 import brochurePdf from '@/assets/Pdf/SHRAVANENTERPRISES.pdf'
 
+const PUBLIC_BROCHURE_PATH = '/SHRAVANENTERPRISES.pdf'
+
 const BROCHURE_FILE_NAME = 'SHRAVANENTERPRISES.pdf'
 
 export const Route = createFileRoute('/brochure')({
@@ -20,9 +22,21 @@ function getSavedValue(key: string) {
 	return window.localStorage.getItem(key) ?? ''
 }
 
-function downloadPdf() {
+async function downloadPdf() {
+	const tryPublic = async () => {
+ 		try {
+ 			const res = await fetch(PUBLIC_BROCHURE_PATH, { method: 'HEAD' })
+ 			if (res.ok) return PUBLIC_BROCHURE_PATH
+ 		} catch {
+ 			// ignore
+ 		}
+ 		return null
+ 	}
+
+	const url = (await tryPublic()) ?? brochurePdf
+
 	const a = document.createElement('a')
-	a.href = brochurePdf
+	a.href = url
 	a.download = BROCHURE_FILE_NAME
 	document.body.appendChild(a)
 	a.click()
@@ -127,13 +141,25 @@ function RouteComponent() {
 							</div>
 
 							<a
-								href={brochurePdf}
-								target="_blank"
-								rel="noreferrer"
-								className="mt-8 inline-flex rounded-xl border border-primary/30 px-5 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
-							>
-								Preview PDF
-							</a>
+							href={PUBLIC_BROCHURE_PATH}
+							onClick={async (e) => {
+								e.preventDefault()
+								try {
+									const res = await fetch(PUBLIC_BROCHURE_PATH, { method: 'HEAD' })
+									if (res.ok) {
+										window.open(PUBLIC_BROCHURE_PATH, '_blank')
+										return
+									}
+								} catch {
+									// ignore
+								}
+								window.open(brochurePdf, '_blank')
+							}}
+							rel="noreferrer"
+							className="mt-8 inline-flex rounded-xl border border-primary/30 px-5 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
+						>
+							Preview PDF
+						</a>
 						</div>
 
 						<div className="rounded-3xl border border-border bg-card p-8 shadow-card">
