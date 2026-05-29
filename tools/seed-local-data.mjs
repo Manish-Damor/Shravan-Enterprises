@@ -1,5 +1,10 @@
-import { MongoClient } from "mongodb";
 import { pbkdf2Sync, randomBytes } from "crypto";
+import { fileURLToPath, pathToFileURL } from "url";
+import { dirname, resolve } from "path";
+
+const toolDir = dirname(fileURLToPath(import.meta.url));
+const backendMongoModule = pathToFileURL(resolve(toolDir, "..", "Shravan_Backend", "node_modules", "mongodb", "lib", "index.js"));
+const { MongoClient } = await import(backendMongoModule.href);
 
 const uri = process.env.MONGODB_URI ?? "mongodb://127.0.0.1:27017/website-weaver-kit";
 const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "princesavaliya039@gmail.com";

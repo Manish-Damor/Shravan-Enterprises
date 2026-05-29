@@ -1,4 +1,7 @@
 import { ObjectId } from "mongodb";
+import { writeFile, mkdir, access, readFile } from "fs/promises";
+import path from "path";
+import { randomUUID } from "crypto";
 import { getMongoCollections } from "@/integrations/mongo/client.server";
 import { hashPassword, comparePassword, createAuthToken, verifyAuthToken } from "@/integrations/mongo/auth";
 
@@ -114,8 +117,39 @@ function extractMediaUrl(value: unknown) {
   return typeof url === "string" && url.trim() ? url : null;
 }
 
+function extractStringArray(value: unknown) {
+  if (!Array.isArray(value)) return [] as string[];
+  return value.map((item) => {
+    if (typeof item === "string") return item.trim();
+    if (item && typeof item === "object") {
+      const record = item as Record<string, unknown>;
+      const label = record.label ?? record.name ?? record.title ?? record.value ?? record.url;
+      return typeof label === "string" ? label.trim() : "";
+    }
+    return "";
+  }).filter(Boolean);
+}
+
+function extractMediaList(value: unknown) {
+  if (!Array.isArray(value)) return [] as Array<{ url: string; name?: string | null; type?: string | null }>;
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const media = item as Record<string, unknown>;
+      const url = typeof media.url === "string" ? media.url.trim() : "";
+      if (!url) return null;
+      return {
+        url,
+        name: typeof media.name === "string" ? media.name : typeof media.filename === "string" ? media.filename : null,
+        type: typeof media.type === "string" ? media.type : typeof media.mimeType === "string" ? media.mimeType : null,
+      };
+    })
+    .filter((item): item is { url: string; name?: string | null; type?: string | null } => item !== null);
+}
+
 async function handlePublicRoutes(request: Request, pathname: string) {
   const { categories, products, enquiries, brochure_enquiries } = await getMongoCollections();
+  const url = new URL(request.url);
 
   if (pathname === "/api/public/catalog" && request.method === "GET") {
     const [categoryDocs, productDocs] = await Promise.all([
@@ -169,6 +203,27 @@ async function handlePublicRoutes(request: Request, pathname: string) {
     const publicProducts = productDocs.map((product) => {
       const category = product.category_id ? categoryById.get(String(product.category_id)) : undefined;
       const title = String(product.name ?? product.title ?? "Product");
+      const image = extractMediaUrl(product.image) ?? extractMediaUrl(product.og_image);
+      const galleryImages = extractMediaList(product.gallery_images);
+      const applicationImages = extractMediaList(product.application_images);
+      const files = [
+        { key: "brochure_pdf", value: product.brochure_pdf },
+        { key: "tds_pdf", value: product.tds_pdf },
+        { key: "msds_pdf", value: product.msds_pdf },
+        { key: "certificate", value: product.certificate },
+      ]
+        .map(({ key, value }) => {
+          const url = extractMediaUrl(value);
+          if (!url) return null;
+          const media = value as Record<string, unknown>;
+          return {
+            key,
+            url,
+            name: typeof media.name === "string" ? media.name : typeof media.filename === "string" ? media.filename : `${key}.pdf`,
+            type: typeof media.type === "string" ? media.type : typeof media.mimeType === "string" ? media.mimeType : null,
+          };
+        })
+        .filter((item): item is { key: string; url: string; name: string; type: string | null } => item !== null);
 
       return {
         id: product._id?.toString?.() ?? null,
@@ -179,9 +234,25 @@ async function handlePublicRoutes(request: Request, pathname: string) {
         category_slug: category?.slug ?? null,
         category_title: category?.name ?? null,
         featured: Boolean(product.featured),
-        image: extractMediaUrl(product.image) ?? extractMediaUrl(product.og_image),
+        image,
+        gallery_images: galleryImages,
+        application_images: applicationImages,
+        files,
+        applications: extractStringArray(product.application_rows ?? product.applications),
+        industries: extractStringArray(product.industries_served),
+        tags: extractStringArray(product.tags),
         short_description: product.short_description ?? null,
         detailed_description: product.detailed_description ?? null,
+        product_details: product.product_details ?? null,
+        key_features: product.key_features ?? null,
+        benefits: product.benefits ?? null,
+        packaging_details: product.packaging_details ?? null,
+        storage_instructions: product.storage_instructions ?? null,
+        safety_notes: product.safety_notes ?? null,
+        technical_specifications: product.technical_specifications ?? null,
+        specification_rows: Array.isArray(product.specification_rows) ? product.specification_rows : [],
+        contact_details: product.contact_details ?? null,
+        primary_image: product.image ?? null,
         createdAt: product.createdAt ?? null,
         updatedAt: product.updatedAt ?? null,
       };
@@ -195,6 +266,69 @@ async function handlePublicRoutes(request: Request, pathname: string) {
         products: publicProducts.length,
         enquiries: 0,
       },
+    });
+  }
+
+  // Paginated public products endpoint with filtering and basic faceting
+  if (pathname === "/api/public/products" && request.method === "GET") {
+    const params = url.searchParams;
+    const q = (params.get("q") || "").trim();
+    const category = params.get("category") || params.get("category_id") || null;
+    const featured = params.get("featured");
+    const tag = params.get("tag");
+    const page = Math.max(1, Number(params.get("page") || 1));
+    const limit = Math.min(100, Math.max(1, Number(params.get("limit") || 24)));
+
+    const mongoQuery: Record<string, unknown> = { status: "published" };
+    if (category) mongoQuery.category_id = category;
+    if (featured !== null) {
+      const f = parseBool(featured);
+      if (f !== undefined) mongoQuery.featured = f;
+    }
+    if (tag) mongoQuery.tags = { $in: [tag] };
+
+    if (q) {
+      // basic text search across a few fields
+      mongoQuery.$or = [
+        { name: { $regex: q, $options: "i" } },
+        { short_description: { $regex: q, $options: "i" } },
+        { detailed_description: { $regex: q, $options: "i" } },
+        { slug: { $regex: q, $options: "i" } },
+      ];
+    }
+
+    const total = await products.countDocuments(mongoQuery);
+    const results = await products
+      .find(mongoQuery)
+      .sort({ featured: -1, sort_order: 1, createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray();
+
+    const rows = results.map((product) => ({
+      id: product._id?.toString?.() ?? null,
+      slug: String(product.slug ?? slugifyText(String(product.name ?? product.title ?? ""))),
+      name: String(product.name ?? product.title ?? ""),
+      short_description: product.short_description ?? null,
+      image: extractMediaUrl(product.image) ?? null,
+      featured: Boolean(product.featured),
+      category_id: product.category_id ?? null,
+      tags: extractStringArray(product.tags),
+    }));
+
+    // simple faceting: counts per category for current query
+    const facetPipeline = [
+      { $match: mongoQuery },
+      { $group: { _id: "$category_id", count: { $sum: 1 } } },
+    ];
+    const facets = await products.aggregate(facetPipeline).toArray();
+
+    return jsonResponse({
+      total,
+      page,
+      limit,
+      products: rows,
+      facets: facets.map((f) => ({ category_id: f._id ?? null, count: f.count })),
     });
   }
 
@@ -394,6 +528,11 @@ export async function handleApiRequest(request: Request) {
       return await handleCollectionRoutes(request, pathname, "generated_pdfs");
     }
 
+      // Upload routes (direct/base64 fallback for local dev)
+      if (pathname.startsWith("/api/uploads")) {
+        return await handleUploadRoutes(request, pathname);
+      }
+
     return errorResponse("Not found", 404);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error";
@@ -588,6 +727,81 @@ async function handleCollectionRoutes(request: Request, pathname: string, collec
     const id = idMatch[1];
     await collection.deleteOne({ _id: new ObjectId(id) });
     return jsonResponse({ success: true });
+  }
+
+  return errorResponse("Not found", 404);
+}
+
+async function handleUploadRoutes(request: Request, pathname: string) {
+  const { generated_pdfs } = await getMongoCollections();
+
+  const uploadsDir = process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads");
+  await mkdir(uploadsDir, { recursive: true });
+
+  // POST /api/uploads - accept JSON { filename, contentType, data(base64) }
+  if (pathname === "/api/uploads" && request.method === "POST") {
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") return errorResponse("Invalid upload payload", 400);
+    const origFilename = String((body as any).filename ?? "file");
+    const contentType = String((body as any).contentType ?? "application/octet-stream");
+    const dataBase64 = String((body as any).data ?? "");
+    if (!dataBase64) return errorResponse("No file data provided", 400);
+
+    const extFromName = path.extname(origFilename).replace(/^\./, "");
+    const extFromType = (contentType.split("/")[1] || "bin").replace(/[^a-z0-9]+/gi, "");
+    const ext = extFromName || extFromType || "bin";
+    const filename = `${randomUUID()}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+
+    try {
+      await writeFile(filePath, Buffer.from(dataBase64, "base64"));
+    } catch (err) {
+      return errorResponse("Failed to write upload", 500);
+    }
+
+    const now = new Date().toISOString();
+    const doc = {
+      filename,
+      originalFilename: origFilename,
+      contentType,
+      filePath,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const result = await generated_pdfs.insertOne(doc as any);
+    return jsonResponse({ id: result.insertedId.toString(), url: `/api/uploads/${result.insertedId.toString()}` }, 201);
+  }
+
+  // GET /api/uploads/:id - return file (reads filePath or falls back to stored base64)
+  const idMatch = pathname.match(/^\/api\/uploads\/([^/]+)$/);
+  if (idMatch && request.method === "GET") {
+    const id = idMatch[1];
+    try {
+      const doc = await generated_pdfs.findOne({ _id: new ObjectId(id) });
+      if (!doc) return errorResponse("Not found", 404);
+
+      if (doc.filePath) {
+        try {
+          const buf = await readFile(doc.filePath);
+          return new Response(buf, { status: 200, headers: { "content-type": doc.contentType ?? "application/octet-stream", "content-disposition": `attachment; filename="${doc.originalFilename ?? doc.filename ?? "file"}"` } });
+        } catch (err) {
+          return errorResponse("File missing on disk", 404);
+        }
+      }
+
+      const base64 = doc.dataBase64 ?? doc.data ?? null;
+      if (!base64) return errorResponse("No file data", 404);
+      const buffer = Buffer.from(base64, "base64");
+      return new Response(buffer, { status: 200, headers: { "content-type": doc.contentType ?? "application/octet-stream", "content-disposition": `attachment; filename="${doc.filename ?? "file"}"` } });
+    } catch (err) {
+      return errorResponse("Invalid id", 400);
+    }
+  }
+
+  // Sign endpoint: instructs client to POST to /api/uploads when no cloud configured
+  if (pathname === "/api/uploads/sign" && request.method === "POST") {
+    return jsonResponse({ strategy: "direct", uploadUrl: "/api/uploads", method: "POST", note: "Send JSON { filename, contentType, data } where data is base64" });
   }
 
   return errorResponse("Not found", 404);

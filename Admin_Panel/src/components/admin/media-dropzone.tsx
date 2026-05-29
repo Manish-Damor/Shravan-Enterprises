@@ -10,18 +10,32 @@ type MediaValue = {
 };
 
 async function fileToMediaValue(file: File): Promise<MediaValue> {
-  const url = await new Promise<string>((resolve, reject) => {
+  // Read as data URL and upload to backend upload endpoint.
+  const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
 
-  return {
-    name: file.name,
-    type: file.type,
-    url,
-  };
+  // dataUrl is like 'data:<type>;base64,<data>'
+  const parts = dataUrl.split(",");
+  const base64 = parts[1] ?? "";
+
+  try {
+    const res = await fetch("/api/uploads", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ filename: file.name, contentType: file.type || "application/octet-stream", data: base64 }),
+    });
+    if (!res.ok) throw new Error("Upload failed");
+    const payload = await res.json();
+    const url = payload.url || payload.path || payload.id ? `/api/uploads/${payload.id || payload.insertedId || payload.path}` : dataUrl;
+    return { name: file.name, type: file.type, url };
+  } catch (err) {
+    // fallback to dataUrl so UX still works offline
+    return { name: file.name, type: file.type, url: dataUrl };
+  }
 }
 
 export function MediaDropzone({

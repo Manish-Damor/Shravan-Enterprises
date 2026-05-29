@@ -53,8 +53,13 @@ export type BrochureEnquiryInput = {
   email: string;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.trim() ?? import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ?? "";
-const LOCAL_API_PORT_CANDIDATES = ["8083", "8081"] as const;
+let API_BASE_URL = import.meta.env.VITE_API_URL?.trim() ?? import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ?? "";
+// During local development talk directly to the backend API server.
+if (import.meta.env.DEV && !API_BASE_URL) {
+  API_BASE_URL = "http://localhost:8082";
+}
+
+const LOCAL_API_PORT_CANDIDATES = ["8083", "8082", "8081"] as const;
 
 const fallbackBySlug = new Map(fallbackCategories.map((category) => [category.slug, category]));
 
