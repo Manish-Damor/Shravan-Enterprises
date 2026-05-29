@@ -54,7 +54,6 @@ function Dashboard() {
   const cards = [
     { label: "Total Products", value: data?.totalProducts ?? 0, icon: Boxes, tone: "from-sky-500 to-blue-600" },
     { label: "Categories", value: data?.categories ?? 0, icon: Sparkles, tone: "from-emerald-500 to-teal-600" },
-    { label: "Brochures / PDFs", value: data?.totalBrochures ?? 0, icon: FileText, tone: "from-slate-700 to-slate-900" },
     { label: "Brochure Requests", value: data?.brochureRequests ?? 0, icon: Inbox, tone: "from-cyan-500 to-sky-600" },
     { label: "Total Enquiries", value: data?.enquiries ?? 0, icon: Inbox, tone: "from-cyan-500 to-blue-500" },
     { label: "Draft Products", value: data?.drafts ?? 0, icon: BadgeCheck, tone: "from-amber-500 to-orange-600" },
