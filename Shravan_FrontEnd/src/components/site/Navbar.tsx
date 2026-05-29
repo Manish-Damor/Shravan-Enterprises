@@ -10,6 +10,7 @@ const links = [
   { to: "/certifications", label: "Certifications" },
   { to: "/gallery", label: "Gallery" },
   { to: "/contact", label: "Contact" },
+  { to: "/brochure", label: "Brochure" },
 ] as const;
 
 export function Navbar() {

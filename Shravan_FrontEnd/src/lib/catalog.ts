@@ -48,13 +48,51 @@ export type PublicEnquiryInput = {
   category_id?: string | null;
 };
 
-const API_BASE_URL = import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ?? "";
+export type BrochureEnquiryInput = {
+  name: string;
+  email: string;
+};
+
+const API_BASE_URL = import.meta.env.VITE_API_URL?.trim() ?? import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ?? "";
+const LOCAL_API_PORT_CANDIDATES = ["8083", "8081"] as const;
 
 const fallbackBySlug = new Map(fallbackCategories.map((category) => [category.slug, category]));
 
 function toAbsoluteApiUrl(path: string) {
   if (!API_BASE_URL) return null;
   return new URL(path, API_BASE_URL).toString();
+}
+
+function appendUniqueUrl(urls: string[], value: string | null) {
+  if (!value || urls.includes(value)) return;
+  urls.push(value);
+}
+
+function getBrowserApiCandidates(path: string) {
+  if (typeof window === "undefined") return [];
+
+  const urls: string[] = [];
+  appendUniqueUrl(urls, new URL(path, window.location.origin).toString());
+
+  const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+  if (!isLocalHost) return urls;
+
+  for (const port of LOCAL_API_PORT_CANDIDATES) {
+    appendUniqueUrl(urls, new URL(path, `${window.location.protocol}//${window.location.hostname}:${port}`).toString());
+  }
+
+  return urls;
+}
+
+function getApiRequestUrls(path: string) {
+  const urls: string[] = [];
+  appendUniqueUrl(urls, toAbsoluteApiUrl(path));
+
+  for (const candidate of getBrowserApiCandidates(path)) {
+    appendUniqueUrl(urls, candidate);
+  }
+
+  return urls;
 }
 
 function fallbackCategoryImage(slug: string) {
@@ -133,8 +171,8 @@ function normalizeProduct(value: unknown): PublicProduct | null {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = toAbsoluteApiUrl(path);
-  if (!url) {
+  const urls = getApiRequestUrls(path);
+  if (urls.length === 0) {
     throw new Error("Set VITE_PUBLIC_API_BASE_URL to connect the public website to the backend.");
   }
 
@@ -143,22 +181,47 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     headers["content-type"] = "application/json";
   }
 
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      ...headers,
-      ...(init?.headers as Record<string, string> | undefined),
-    },
-  });
+  let lastError: Error | null = null;
 
-  const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
+  for (const url of urls) {
+    let response: Response;
 
-  if (!response.ok) {
-    throw new Error(payload?.message || response.statusText || "Request failed");
+    try {
+      response = await fetch(url, {
+        ...init,
+        headers: {
+          ...headers,
+          ...(init?.headers as Record<string, string> | undefined),
+        },
+      });
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Request failed");
+      continue;
+    }
+
+    const contentType = response.headers.get("content-type") ?? "";
+    const text = await response.text();
+
+    if (!contentType.includes("application/json")) {
+      const bodyPreview = text?.slice(0, 200) ?? "";
+      lastError = new Error(
+        text
+          ? `Expected JSON response but received: ${bodyPreview}`
+          : response.statusText || "Request failed",
+      );
+      continue;
+    }
+
+    const payload = text ? JSON.parse(text) : null;
+
+    if (!response.ok) {
+      throw new Error(payload?.message || response.statusText || "Request failed");
+    }
+
+    return payload as T;
   }
 
-  return payload as T;
+  throw lastError ?? new Error("Request failed");
 }
 
 export async function fetchPublicCatalog(): Promise<PublicCatalog> {
@@ -192,6 +255,13 @@ export async function fetchPublicCatalog(): Promise<PublicCatalog> {
 
 export async function submitPublicEnquiry(input: PublicEnquiryInput) {
   return requestJson<{ success: boolean; id: string }>("/api/public/enquiries", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function submitBrochureEnquiry(input: BrochureEnquiryInput) {
+  return requestJson<{ success: boolean; message?: string; id: string }>("/api/brochure-enquiries", {
     method: "POST",
     body: JSON.stringify(input),
   });

@@ -1,5 +1,5 @@
 const AUTH_TOKEN_KEY = "wwk_auth_token";
-const ADMIN_API_BASE_URL = import.meta.env.VITE_ADMIN_API_BASE_URL?.trim() ?? import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ?? "";
+const ADMIN_API_BASE_URL = import.meta.env.VITE_ADMIN_API_URL?.trim() ?? import.meta.env.VITE_ADMIN_API_BASE_URL?.trim() ?? import.meta.env.VITE_API_URL?.trim() ?? import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ?? "";
 
 export function getAuthToken() {
   if (typeof window === "undefined") return null;
@@ -55,7 +55,13 @@ export async function apiFetch<T = unknown>(input: RequestInfo, init?: RequestIn
     headers,
   });
 
+  const contentType = response.headers.get("content-type") ?? "";
   const text = await response.text();
+
+  if (!contentType.includes("application/json")) {
+    throw new Error(text ? `Expected JSON response but received: ${text.slice(0, 200)}` : response.statusText || "Request failed");
+  }
+
   const data = text ? JSON.parse(text) : null;
 
   if (!response.ok) {

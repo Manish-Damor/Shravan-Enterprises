@@ -55,7 +55,7 @@ export function Footer() {
           <ul className="space-y-3 text-sm text-white/80">
             <li className="flex gap-3"><MapPin className="w-4 h-4 mt-0.5 shrink-0" /><span>Sri Residency E-Tower, Shop No. 1 & 2, Village Borkud Faliya, Silvassa – 396230, DNH</span></li>
             <li className="flex gap-3"><Phone className="w-4 h-4 mt-0.5 shrink-0" /><span>+91 98241 24043<br />+91 98241 24073</span></li>
-            <li className="flex gap-3"><Mail className="w-4 h-4 mt-0.5 shrink-0" /><a href="mailto:shravanenterprieses1312@gmail.com" className="break-all hover:text-white">shravanenterprieses1312@gmail.com</a></li>
+            <li className="flex gap-3"><Mail className="w-4 h-4 mt-0.5 shrink-0" /><a href="mailto:shravanenterprises1312@gmail.com" className="break-all hover:text-white">shravanenterprises1312@gmail.com</a></li>
           </ul>
         </div>
       </div>

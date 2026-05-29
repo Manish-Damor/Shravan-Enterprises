@@ -20,9 +20,9 @@ export const Route = createFileRoute("/")({
 });
 
 const stats = [
-  { value: "7+", label: "Years of Experience" },
+  { value: "16+", label: "Years of Experience" },
   { value: "500+", label: "Happy Clients" },
-  { value: "50+", label: "Product Categories" },
+  { value: "200+", label: "Product Categories" },
   { value: "20+", label: "Supply Network Cities" },
 ];
 
@@ -47,8 +47,8 @@ function Home() {
   const categories = activeCatalog.categories;
 
   const stats = [
-    { value: "7+", label: "Years of Experience" },
-    { value: `${activeCatalog.counts.categories}+`, label: "Product Categories" },
+    { value: "16+", label: "Years of Experience" },
+    { value: "200+", label: "Product Categories" },
     { value: `${activeCatalog.counts.products}+`, label: "Published Products" },
     { value: "20+", label: "Supply Network Cities" },
   ];

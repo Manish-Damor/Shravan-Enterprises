@@ -7,6 +7,7 @@ export async function getMongoCollections() {
     categories: db.collection("categories"),
     products: db.collection("products"),
     enquiries: db.collection("enquiries"),
+    brochure_enquiries: db.collection("brochure_enquiries"),
     user_profiles: userProfiles,
     user_roles: db.collection("user_roles"),
     users: userProfiles,

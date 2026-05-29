@@ -17,6 +17,7 @@ type CollectionName =
   | "categories"
   | "products"
   | "enquiries"
+  | "brochure_enquiries"
   | "website_settings"
   | "banners"
   | "clients"
@@ -25,6 +26,7 @@ type CollectionName =
 function routeBaseForCollection(collectionName: CollectionName) {
   if (collectionName === "website_settings") return "website-settings";
   if (collectionName === "generated_pdfs") return "generated-pdfs";
+  if (collectionName === "brochure_enquiries") return "brochure-enquiries";
   return collectionName;
 }
 
@@ -113,7 +115,7 @@ function extractMediaUrl(value: unknown) {
 }
 
 async function handlePublicRoutes(request: Request, pathname: string) {
-  const { categories, products, enquiries } = await getMongoCollections();
+  const { categories, products, enquiries, brochure_enquiries } = await getMongoCollections();
 
   if (pathname === "/api/public/catalog" && request.method === "GET") {
     const [categoryDocs, productDocs] = await Promise.all([
@@ -228,7 +230,67 @@ async function handlePublicRoutes(request: Request, pathname: string) {
     return jsonResponse({ success: true, id: result.insertedId.toString() }, 201);
   }
 
+  if (pathname === "/api/brochure-enquiry" && request.method === "POST") {
+    const body = await request.json();
+    const name = String(body.name ?? body.customer_name ?? "").trim();
+    const email = String(body.email ?? "").trim().toLowerCase();
+
+    if (!name) {
+      return errorResponse("Name is required.");
+    }
+
+    if (!email) {
+      return errorResponse("Email is required.");
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return errorResponse("Please enter a valid email address.");
+    }
+
+    const now = new Date().toISOString();
+    const result = await brochure_enquiries.insertOne({
+      name,
+      email,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return jsonResponse({ success: true, id: result.insertedId.toString() }, 201);
+  }
+
   return errorResponse("Not found", 404);
+}
+
+async function handleBrochureEnquiryRequest(request: Request) {
+  const { brochure_enquiries } = await getMongoCollections();
+  const body = await request.json();
+  const name = String(body.name ?? body.customer_name ?? "").trim();
+  const email = String(body.email ?? "").trim().toLowerCase();
+
+  if (!name || !email) {
+    return jsonResponse({ success: false, message: "Name and email are required" }, 400);
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return jsonResponse({ success: false, message: "Please enter a valid email address" }, 400);
+  }
+
+  const now = new Date().toISOString();
+  const result = await brochure_enquiries.insertOne({
+    name,
+    email,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return jsonResponse(
+    {
+      success: true,
+      message: "Brochure request saved successfully",
+      id: result.insertedId.toString(),
+    },
+    201,
+  );
 }
 
 export async function handleApiRequest(request: Request) {
@@ -236,6 +298,10 @@ export async function handleApiRequest(request: Request) {
   const pathname = url.pathname.replace(/\/+$/, "");
 
   try {
+    if ((pathname === "/api/brochure-enquiry" || pathname === "/api/brochure-enquiries") && request.method === "POST") {
+      return await handleBrochureEnquiryRequest(request);
+    }
+
     if (pathname.startsWith("/api/public/")) {
       return await handlePublicRoutes(request, pathname);
     }
@@ -297,6 +363,15 @@ export async function handleApiRequest(request: Request) {
     if (pathname.startsWith("/api/enquiries")) {
       await requireAdmin(request);
       return await handleCollectionRoutes(request, pathname, "enquiries");
+    }
+
+    if (pathname.startsWith("/api/brochure-enquiries")) {
+      await requireAdmin(request);
+      return await handleCollectionRoutes(request, pathname, "brochure_enquiries");
+    }
+
+    if (pathname === "/api/brochure-enquiry") {
+      return errorResponse("Not found", 404);
     }
 
     if (pathname.startsWith("/api/website-settings")) {

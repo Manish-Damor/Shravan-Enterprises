@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderTree, Package, Inbox, LogOut, ShieldCheck, UserCog, Users } from "lucide-react";
+import { LayoutDashboard, FolderTree, Package, Inbox, LogOut, ShieldCheck, UserCog, Users, FileText } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,7 @@ const items = [
   { to: "/admin/categories", label: "Categories", icon: FolderTree },
   { to: "/admin/products", label: "Products", icon: Package },
   { to: "/admin/enquiries", label: "Enquiries", icon: Inbox },
+  { to: "/admin/brochure-enquiries", label: "Brochure Enquiries", icon: FileText },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/account", label: "Account", icon: UserCog },
 ];

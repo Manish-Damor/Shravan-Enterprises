@@ -52,8 +52,18 @@ export async function apiFetch<T = unknown>(input: RequestInfo, init?: RequestIn
     ...init,
     headers,
   });
-
+  const contentType = response.headers.get("content-type") ?? "";
   const text = await response.text();
+
+  if (!contentType.includes("application/json")) {
+    const bodyPreview = text?.slice(0, 200) ?? "";
+    const errMsg = text ? `Expected JSON response but received: ${bodyPreview}` : response.statusText || "Request failed";
+    if (response.status === 401) {
+      clearAuthToken();
+    }
+    throw new Error(errMsg);
+  }
+
   const data = text ? JSON.parse(text) : null;
 
   if (!response.ok) {

@@ -1,234 +1,288 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { PageHero } from '@/components/site/PageHero'
-import { submitPublicEnquiry } from '@/lib/catalog'
-import { useMemo, useState } from 'react'
+import { createFileRoute } from "@tanstack/react-router";
+import { motion } from "framer-motion";
+import { CheckCircle2, Download, FileText, Mail, ShieldCheck, Sparkles, User } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import brochurePdf from '@/assets/Pdf/SHRAVANENTERPRISES.pdf'
+import heroImage from "@/assets/hero-industrial.jpg";
+import { PageHero } from "@/components/site/PageHero";
+import { submitBrochureEnquiry } from "@/lib/catalog";
 
-const PUBLIC_BROCHURE_PATH = '/SHRAVANENTERPRISES.pdf'
+const BROCHURE_PATH = "/SHRAVANENTERPRISES.pdf";
+const BROCHURE_FILE_NAME = "Shravan-Enterprises-Brochure.pdf";
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const BROCHURE_FILE_NAME = 'SHRAVANENTERPRISES.pdf'
+export const Route = createFileRoute("/brochure")({
+  head: () => ({
+    meta: [
+      { title: "Brochure — Shravan Enterprises" },
+      { name: "description", content: "Download our company brochure after sharing your details." },
+    ],
+    links: [{ rel: "canonical", href: "/brochure" }],
+  }),
+  component: BrochurePage,
+});
 
-export const Route = createFileRoute('/brochure')({
-	head: () => ({
-		meta: [{ title: 'Brochure — Shravan Enterprises' }],
-		links: [{ rel: 'canonical', href: '/brochure' }],
-	}),
-	component: RouteComponent,
-})
+function clearBrochureFormStorage() {
+  if (typeof window === "undefined") return;
 
-function getSavedValue(key: string) {
-	if (typeof window === 'undefined') return ''
-	return window.localStorage.getItem(key) ?? ''
+  window.localStorage.removeItem("brochure_name");
+  window.localStorage.removeItem("brochure_email");
+  window.sessionStorage.removeItem("brochure_name");
+  window.sessionStorage.removeItem("brochure_email");
 }
 
-async function downloadPdf() {
-	const tryPublic = async () => {
- 		try {
- 			const res = await fetch(PUBLIC_BROCHURE_PATH, { method: 'HEAD' })
- 			if (res.ok) return PUBLIC_BROCHURE_PATH
- 		} catch {
- 			// ignore
- 		}
- 		return null
- 	}
-
-	const url = (await tryPublic()) ?? brochurePdf
-
-	const a = document.createElement('a')
-	a.href = url
-	a.download = BROCHURE_FILE_NAME
-	document.body.appendChild(a)
-	a.click()
-	a.remove()
+async function downloadBrochureFile() {
+  const anchor = document.createElement("a");
+  anchor.href = BROCHURE_PATH;
+  anchor.download = BROCHURE_FILE_NAME;
+  anchor.rel = "noreferrer";
+  anchor.target = "_blank";
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
 }
 
-function RouteComponent() {
-	const initialValues = useMemo(() => {
-		if (typeof window === 'undefined') {
-			return { name: '', email: '' }
-		}
+function BrochurePage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
 
-		const params = new URLSearchParams(window.location.search)
+  useEffect(() => {
+    clearBrochureFormStorage();
+    setName("");
+    setEmail("");
+  }, []);
 
-		return {
-			name: params.get('name') ?? getSavedValue('brochure_name'),
-			email: params.get('email') ?? getSavedValue('brochure_email'),
-		}
-	}, [])
+  const validate = () => {
+    const nextErrors: { name?: string; email?: string } = {};
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
 
-	const [loading, setLoading] = useState(false)
-	const [sent, setSent] = useState(false)
-	const [error, setError] = useState<string | null>(null)
+    if (!trimmedName) {
+      nextErrors.name = "Name is required.";
+    }
 
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault()
-		setLoading(true)
-		setError(null)
+    if (!trimmedEmail) {
+      nextErrors.email = "Email is required.";
+    } else if (!emailPattern.test(trimmedEmail)) {
+      nextErrors.email = "Enter a valid email address.";
+    }
 
-		const fd = new FormData(e.currentTarget)
-		const name = String(fd.get('name') ?? '').trim()
-		const email = String(fd.get('email') ?? '').trim()
+    setFieldErrors(nextErrors);
 
-		try {
-			if (typeof window !== 'undefined') {
-				window.localStorage.setItem('brochure_name', name)
-				window.localStorage.setItem('brochure_email', email)
-			}
+    return {
+      valid: Object.keys(nextErrors).length === 0,
+      trimmedName,
+      trimmedEmail,
+    };
+  };
 
-			try {
-				await submitPublicEnquiry({
-					customer_name: name,
-					company: '',
-					mobile: '',
-					email,
-					subject: 'Brochure Request',
-					message: `Requested Shravan Enterprises brochure: ${BROCHURE_FILE_NAME}`,
-				})
-			} catch {
-				// Even if enquiry API fails, brochure download will continue.
-			}
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFormError(null);
 
-			downloadPdf()
-			setSent(true)
-		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Unable to download brochure. Please try again.')
-		} finally {
-			setLoading(false)
-		}
-	}
+    const validation = validate();
+    if (!validation.valid) {
+      return;
+    }
 
-	return (
-		<>
-			<PageHero
-				eyebrow="Company Brochure"
-				title="Download Shravan Enterprises Brochure"
-				description="Get our complete company profile, FRP raw material range, vacuum infusion products, resins, chemicals, accessories, and stone-care solutions."
-			/>
+    setLoading(true);
 
-			<section className="py-20">
-				<div className="container mx-auto px-6">
-					<div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-[1fr_420px]">
-						<div className="rounded-3xl border border-border bg-card p-8 shadow-card">
-							<p className="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-primary">
-								PDF Brochure
-							</p>
+    try {
+      await submitBrochureEnquiry({
+        name: validation.trimmedName,
+        email: validation.trimmedEmail,
+      });
 
-							<h2 className="text-3xl font-bold text-foreground">
-								SHRAVAN ENTERPRISES
-							</h2>
+      await downloadBrochureFile();
+      setName("");
+      setEmail("");
+      setFieldErrors({});
+      clearBrochureFormStorage();
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Unable to process your brochure request right now.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-							<p className="mt-4 text-muted-foreground">
-								ISO 9001:2015 certified supplier of high-quality FRP raw materials
-								for Italian marble, granite, composite, and industrial applications.
-							</p>
+  return (
+    <>
+      <PageHero
+        eyebrow="Company Brochure"
+        title="Download Our Brochure"
+        description="Share your name and email to unlock the brochure, then download the PDF instantly."
+      />
 
-							<div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-								<div className="rounded-2xl border border-border bg-secondary/40 p-4">
-									<h3 className="font-semibold text-foreground">Product Range</h3>
-									<p className="mt-2 text-sm text-muted-foreground">
-										Fiber reinforcement, resins, chemicals, vacuum infusion,
-										FRP accessories, and stone-care products.
-									</p>
-								</div>
+      <section className="relative py-20">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.08),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.08),transparent_28%)]" />
+        <div className="container relative mx-auto px-6">
+          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+              className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-card"
+            >
+              <div className="relative aspect-[16/10] overflow-hidden">
+                <img
+                  src={heroImage}
+                  alt="Shravan Enterprises brochure preview"
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  width={1920}
+                  height={1280}
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.08)_0%,rgba(15,23,42,0.7)_100%)]" />
+                <div className="absolute inset-x-0 bottom-0 p-6 text-primary-foreground sm:p-8">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] backdrop-blur">
+                    <FileText className="h-3.5 w-3.5" />
+                    PDF Brochure
+                  </div>
+                  <h2 className="mt-4 max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">
+                    A polished company profile for customers, partners, and project teams.
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
+                    The brochure includes our industrial product range, service approach, and the
+                    key categories we support across FRP, stone care, and composite applications.
+                  </p>
+                </div>
+              </div>
 
-								<div className="rounded-2xl border border-border bg-secondary/40 p-4">
-									<h3 className="font-semibold text-foreground">Brochure File</h3>
-									<p className="mt-2 text-sm text-muted-foreground">
-										{BROCHURE_FILE_NAME}
-									</p>
-								</div>
-							</div>
+              <div className="grid gap-4 p-6 sm:grid-cols-2 sm:p-8">
+                <div className="rounded-3xl border border-border bg-secondary/30 p-5">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    What you get
+                  </div>
+                  <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      Company overview and positioning
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      Product families and capabilities
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      Premium support and service promise
+                    </li>
+                  </ul>
+                </div>
 
-							<a
-							href={PUBLIC_BROCHURE_PATH}
-							onClick={async (e) => {
-								e.preventDefault()
-								try {
-									const res = await fetch(PUBLIC_BROCHURE_PATH, { method: 'HEAD' })
-									if (res.ok) {
-										window.open(PUBLIC_BROCHURE_PATH, '_blank')
-										return
-									}
-								} catch {
-									// ignore
-								}
-								window.open(brochurePdf, '_blank')
-							}}
-							rel="noreferrer"
-							className="mt-8 inline-flex rounded-xl border border-primary/30 px-5 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
-						>
-							Preview PDF
-						</a>
-						</div>
+                <div className="rounded-3xl border border-border bg-secondary/30 p-5">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Download details
+                  </div>
+                  <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                    <div>File name: {BROCHURE_FILE_NAME}</div>
+                    <div>Format: PDF</div>
+                    <div>Access: after form submission</div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
 
-						<div className="rounded-3xl border border-border bg-card p-8 shadow-card">
-							{sent ? (
-								<div className="rounded-2xl border border-primary/30 bg-primary/10 p-6 text-center">
-									<h3 className="text-xl font-bold text-primary">
-										Thank you!
-									</h3>
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="rounded-[2rem] border border-border bg-card p-6 shadow-card sm:p-8"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Download className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+                    Brochure access
+                  </p>
+                  <h3 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                    Request your download
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Enter your details once and the brochure will download automatically after we
+                    save your request.
+                  </p>
+                </div>
+              </div>
 
-									<p className="mt-2 text-sm text-muted-foreground">
-										Your brochure download has started.
-									</p>
+              <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="brochure-name" className="text-sm font-medium text-foreground">
+                    Name
+                  </label>
+                  <div className="relative">
+                    <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      id="brochure-name"
+                      name="name"
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="Your full name"
+                      maxLength={100}
+                      aria-invalid={Boolean(fieldErrors.name)}
+                      className="w-full rounded-2xl border border-border bg-secondary/40 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    />
+                  </div>
+                  {fieldErrors.name ? (
+                    <p className="text-sm text-rose-600">{fieldErrors.name}</p>
+                  ) : null}
+                </div>
 
-									<button
-										type="button"
-										onClick={downloadPdf}
-										className="mt-5 rounded-xl gradient-primary px-5 py-3 font-semibold text-primary-foreground shadow-glow"
-									>
-										Download Again
-									</button>
-								</div>
-							) : (
-								<form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-									<h3 className="text-2xl font-bold text-foreground">
-										Download Brochure
-									</h3>
+                <div className="space-y-2">
+                  <label htmlFor="brochure-email" className="text-sm font-medium text-foreground">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      id="brochure-email"
+                      name="email"
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="Your email address"
+                      maxLength={255}
+                      aria-invalid={Boolean(fieldErrors.email)}
+                      className="w-full rounded-2xl border border-border bg-secondary/40 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    />
+                  </div>
+                  {fieldErrors.email ? (
+                    <p className="text-sm text-rose-600">{fieldErrors.email}</p>
+                  ) : null}
+                </div>
 
-									<p className="text-sm text-muted-foreground">
-										Enter your details and the PDF will download instantly.
-									</p>
+                {formError ? (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                    {formError}
+                  </div>
+                ) : null}
 
-									<input
-										name="name"
-										defaultValue={initialValues.name}
-										required
-										maxLength={100}
-										placeholder="Full Name"
-										className="rounded-xl border border-border bg-secondary/50 px-4 py-3 outline-none transition focus:border-primary"
-									/>
-
-									<input
-										name="email"
-										defaultValue={initialValues.email}
-										required
-										type="email"
-										maxLength={255}
-										placeholder="Email Address"
-										className="rounded-xl border border-border bg-secondary/50 px-4 py-3 outline-none transition focus:border-primary"
-									/>
-
-									{error ? (
-										<div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-											{error}
-										</div>
-									) : null}
-
-									<button
-										type="submit"
-										disabled={loading}
-										className="rounded-xl gradient-primary py-3 font-semibold text-primary-foreground shadow-glow disabled:cursor-not-allowed disabled:opacity-70"
-									>
-										{loading ? 'Please wait...' : 'Download PDF'}
-									</button>
-								</form>
-							)}
-						</div>
-					</div>
-				</div>
-			</section>
-		</>
-	)
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl gradient-primary px-5 py-3.5 text-sm font-semibold text-primary-foreground shadow-glow transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <Download className="h-4 w-4" />
+                  {loading ? "Submitting..." : "Submit & Download Brochure"}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
 }
