@@ -37,6 +37,7 @@ const navItems: NavItem[] = [
   { to: "/admin/products", label: "Products", icon: Boxes },
   { to: "/admin/categories", label: "Categories", icon: Tag },
   { to: "/admin/enquiries", label: "Enquiries", icon: Inbox },
+  { to: "/admin/brochure-enquiries", label: "Brochure Requests", icon: FileText },
   { to: "/admin/users", label: "Users & Roles", icon: Users },
   { to: "/admin/account", label: "Content & Settings", icon: Settings2 },
 ];
