@@ -18,6 +18,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminEnquiriesRouteImport } from './routes/admin.enquiries'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
+import { Route as AdminBrochureEnquiriesRouteImport } from './routes/admin.brochure-enquiries'
 import { Route as AdminAccountRouteImport } from './routes/admin.account'
 
 const ProductsRoute = ProductsRouteImport.update({
@@ -65,6 +66,11 @@ const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBrochureEnquiriesRoute = AdminBrochureEnquiriesRouteImport.update({
+  id: '/brochure-enquiries',
+  path: '/brochure-enquiries',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAccountRoute = AdminAccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/admin/account': typeof AdminAccountRoute
+  '/admin/brochure-enquiries': typeof AdminBrochureEnquiriesRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/enquiries': typeof AdminEnquiriesRoute
   '/admin/products': typeof AdminProductsRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/admin/account': typeof AdminAccountRoute
+  '/admin/brochure-enquiries': typeof AdminBrochureEnquiriesRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/enquiries': typeof AdminEnquiriesRoute
   '/admin/products': typeof AdminProductsRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/products': typeof ProductsRoute
   '/admin/account': typeof AdminAccountRoute
+  '/admin/brochure-enquiries': typeof AdminBrochureEnquiriesRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/enquiries': typeof AdminEnquiriesRoute
   '/admin/products': typeof AdminProductsRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/products'
     | '/admin/account'
+    | '/admin/brochure-enquiries'
     | '/admin/categories'
     | '/admin/enquiries'
     | '/admin/products'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/products'
     | '/admin/account'
+    | '/admin/brochure-enquiries'
     | '/admin/categories'
     | '/admin/enquiries'
     | '/admin/products'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/products'
     | '/admin/account'
+    | '/admin/brochure-enquiries'
     | '/admin/categories'
     | '/admin/enquiries'
     | '/admin/products'
@@ -217,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCategoriesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/brochure-enquiries': {
+      id: '/admin/brochure-enquiries'
+      path: '/brochure-enquiries'
+      fullPath: '/admin/brochure-enquiries'
+      preLoaderRoute: typeof AdminBrochureEnquiriesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/account': {
       id: '/admin/account'
       path: '/account'
@@ -229,6 +248,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAccountRoute: typeof AdminAccountRoute
+  AdminBrochureEnquiriesRoute: typeof AdminBrochureEnquiriesRoute
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminEnquiriesRoute: typeof AdminEnquiriesRoute
   AdminProductsRoute: typeof AdminProductsRoute
@@ -238,6 +258,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAccountRoute: AdminAccountRoute,
+  AdminBrochureEnquiriesRoute: AdminBrochureEnquiriesRoute,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminEnquiriesRoute: AdminEnquiriesRoute,
   AdminProductsRoute: AdminProductsRoute,
