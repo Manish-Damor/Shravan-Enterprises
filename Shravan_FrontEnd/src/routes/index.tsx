@@ -164,7 +164,7 @@ function Home() {
                 <Link to="/products/$slug" params={{ slug: cat.slug }} className="group block h-full">
                   <div className="relative h-full rounded-3xl overflow-hidden bg-card shadow-card hover:shadow-elegant transition-smooth border border-border hover:border-primary/40">
                     <div className="aspect-[4/3] overflow-hidden">
-                      <img src={cat.image} alt={cat.title} className="w-full h-full object-cover group-hover:scale-110 transition-smooth duration-700" loading="lazy" width={1280} height={896} />
+                      <img src={cat.image || undefined} alt={cat.title} className="w-full h-full object-cover group-hover:scale-110 transition-smooth duration-700" loading="lazy" width={1280} height={896} />
                     </div>
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-smooth" style={{ background: "linear-gradient(180deg, transparent 40%, oklch(0.18 0.05 155 / 0.7))" }} />
                     <div className="p-6">

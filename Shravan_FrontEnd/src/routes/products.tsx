@@ -1,17 +1,32 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useRouterState,
+} from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { PageHero } from "@/components/site/PageHero";
 import { fetchPublicCatalog, getFallbackCatalog } from "@/lib/catalog";
 
 export const Route = createFileRoute("/products")({
   head: () => ({
     meta: [
-      { title: "Products — FRP, Fiberglass, Resin & Stone Care | Shravan Enterprises" },
-      { name: "description", content: "Complete catalog of FRP raw materials, fiberglass, polyester resins, vacuum infusion consumables, accessories and stone-care chemistries." },
-      { property: "og:title", content: "Products — Shravan Enterprises" },
-      { property: "og:description", content: "Explore our premium catalog across 5 industrial categories." },
+      {
+        title:
+          "Products - FRP, Fiberglass, Resin & Stone Care | Shravan Enterprises",
+      },
+      {
+        name: "description",
+        content:
+          "Complete catalog of FRP raw materials, fiberglass, polyester resins, vacuum infusion consumables, accessories and stone-care chemistries.",
+      },
+      { property: "og:title", content: "Products - Shravan Enterprises" },
+      {
+        property: "og:description",
+        content: "Explore our premium catalog across 5 industrial categories.",
+      },
     ],
     links: [{ rel: "canonical", href: "/products" }],
   }),
@@ -19,6 +34,9 @@ export const Route = createFileRoute("/products")({
 });
 
 function Products() {
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
   const { data: catalog } = useQuery({
     queryKey: ["public-catalog"],
     queryFn: fetchPublicCatalog,
@@ -28,40 +46,71 @@ function Products() {
   });
   const categories = catalog?.categories ?? getFallbackCatalog().categories;
 
+  if (pathname !== "/products") {
+    return <Outlet />;
+  }
+
   return (
     <>
-      <PageHero eyebrow="Our Products" title="A complete catalog for industrial excellence." description="Premium raw materials, consumables and accessories across 5 specialized categories." />
+      <PageHero
+        eyebrow="Our Products"
+        title="A complete catalog for industrial excellence."
+        description="Premium raw materials, consumables and accessories across 5 specialized categories."
+      />
       <section className="py-24">
-        <div className="container mx-auto px-6 space-y-10">
-          {categories.map((cat, idx) => (
+        <div className="container mx-auto space-y-10 px-6">
+          {categories.map((category, index) => (
             <motion.div
-              key={cat.slug}
+              key={category.slug}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Link to="/products/$slug" params={{ slug: cat.slug }} className="group block">
-                <div className={`grid lg:grid-cols-2 gap-0 rounded-3xl overflow-hidden bg-card border border-border shadow-card hover:shadow-elegant transition-smooth ${idx % 2 === 1 ? "lg:[direction:rtl]" : ""}`}>
-                  <div className="relative aspect-[4/3] lg:aspect-auto overflow-hidden">
-                    <img src={cat.image} alt={cat.title} loading="lazy" width={1280} height={896} className="w-full h-full object-cover group-hover:scale-105 transition-smooth duration-700" />
-                    <div className="absolute top-5 left-5 text-xs font-semibold tracking-[0.2em] uppercase px-3 py-1.5 rounded-full glass border border-white/30 text-white">
-                      0{idx + 1}
+              <Link
+                to="/products/$slug"
+                params={{ slug: category.slug }}
+                className="group block"
+              >
+                <div
+                  className={`grid gap-0 overflow-hidden rounded-3xl border border-border bg-card shadow-card transition-smooth hover:shadow-elegant lg:grid-cols-2 ${
+                    index % 2 === 1 ? "lg:[direction:rtl]" : ""
+                  }`}
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden lg:aspect-auto">
+                    <img
+                      src={category.image || undefined}
+                      alt={category.title}
+                      loading="lazy"
+                      width={1280}
+                      height={896}
+                      className="h-full w-full object-cover transition-smooth duration-700 group-hover:scale-105"
+                    />
+                    <div className="glass absolute left-5 top-5 rounded-full border border-white/30 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white">
+                      0{index + 1}
                     </div>
                   </div>
-                  <div className="p-10 lg:p-14 flex flex-col justify-center lg:[direction:ltr]">
-                    <h2 className="text-3xl md:text-4xl font-bold text-foreground group-hover:text-primary transition-smooth">{cat.title}</h2>
-                    <p className="mt-3 text-lg text-muted-foreground leading-relaxed">{cat.tagline}</p>
-                    <ul className="mt-6 grid sm:grid-cols-2 gap-2">
-                      {cat.items.map((item) => (
-                        <li key={item} className="text-sm text-foreground/80 flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  <div className="flex flex-col justify-center p-10 lg:p-14 lg:[direction:ltr]">
+                    <h2 className="text-3xl font-bold text-foreground transition-smooth group-hover:text-primary md:text-4xl">
+                      {category.title}
+                    </h2>
+                    <p className="mt-3 text-lg leading-relaxed text-muted-foreground">
+                      {category.tagline}
+                    </p>
+                    <ul className="mt-6 grid gap-2 sm:grid-cols-2">
+                      {category.items.map((item) => (
+                        <li
+                          key={item}
+                          className="flex items-center gap-2 text-sm text-foreground/80"
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                           {item}
                         </li>
                       ))}
                     </ul>
                     <div className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                      View Category <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      View Category{" "}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </div>
                   </div>
                 </div>

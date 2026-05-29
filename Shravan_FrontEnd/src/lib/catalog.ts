@@ -21,8 +21,20 @@ export type PublicProduct = {
   category_title: string | null;
   featured: boolean;
   image: string | null;
+  gallery_images?: string[];
+  files?: Array<{
+    key: string;
+    url: string;
+    name: string;
+    type: string | null;
+  }>;
+  applications?: string[];
+  industries?: string[];
+  tags?: string[];
   short_description: string | null;
   detailed_description: string | null;
+  technical_specifications?: unknown;
+  specification_rows?: unknown[];
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -168,8 +180,39 @@ function normalizeProduct(value: unknown): PublicProduct | null {
     category_title: product.category_title ? String(product.category_title) : null,
     featured: Boolean(product.featured),
     image: product.image ? String(product.image) : null,
+    gallery_images: Array.isArray(product.gallery_images)
+      ? product.gallery_images.map((item) => String(item)).filter(Boolean)
+      : [],
+    files: Array.isArray(product.files)
+      ? product.files
+          .map((item) => {
+            if (!item || typeof item !== "object") return null;
+            const file = item as Record<string, unknown>;
+            const key = String(file.key ?? "").trim();
+            const url = String(file.url ?? file.value ?? "").trim();
+            if (!key || !url) return null;
+            return {
+              key,
+              url,
+              name: String(file.name ?? file.filename ?? key).trim(),
+              type: file.type ? String(file.type) : null,
+            };
+          })
+          .filter((item): item is NonNullable<PublicProduct["files"]>[number] => item !== null)
+      : [],
+    applications: Array.isArray(product.applications)
+      ? product.applications.map((item) => String(item).trim()).filter(Boolean)
+      : [],
+    industries: Array.isArray(product.industries)
+      ? product.industries.map((item) => String(item).trim()).filter(Boolean)
+      : [],
+    tags: Array.isArray(product.tags)
+      ? product.tags.map((item) => String(item).trim()).filter(Boolean)
+      : [],
     short_description: product.short_description ? String(product.short_description) : null,
     detailed_description: product.detailed_description ? String(product.detailed_description) : null,
+    technical_specifications: product.technical_specifications ?? null,
+    specification_rows: Array.isArray(product.specification_rows) ? product.specification_rows : [],
     createdAt: product.createdAt ? String(product.createdAt) : null,
     updatedAt: product.updatedAt ? String(product.updatedAt) : null,
   };
@@ -220,7 +263,11 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     const payload = text ? JSON.parse(text) : null;
 
     if (!response.ok) {
-      throw new Error(payload?.message || response.statusText || "Request failed");
+      const err = new Error(payload?.message || response.statusText || "Request failed");
+      try {
+        (err as any).payload = payload;
+      } catch {}
+      throw err;
     }
 
     return payload as T;
@@ -255,6 +302,19 @@ export async function fetchPublicCatalog(): Promise<PublicCatalog> {
     };
   } catch {
     return fallbackCatalog();
+  }
+}
+
+export async function fetchPublicProductBySlug(slug: string) {
+  try {
+    const payload = await requestJson<{ products?: unknown[] }>("/api/public/catalog");
+    const products = payload.products ?? [];
+    const found = (products as Record<string, unknown>[]).find(
+      (product) => String(product.slug ?? "").trim() === String(slug ?? "").trim(),
+    );
+    return found ?? null;
+  } catch {
+    return null;
   }
 }
 

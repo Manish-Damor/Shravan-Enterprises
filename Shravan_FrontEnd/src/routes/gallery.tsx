@@ -54,7 +54,7 @@ function Gallery() {
                 onClick={() => setActive(img.src)}
                 className={`group relative overflow-hidden rounded-2xl shadow-card hover:shadow-elegant transition-smooth ${img.span ?? ""}`}
               >
-                <img src={img.src} alt={img.alt} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-smooth duration-700" />
+                <img src={img.src || undefined} alt={img.alt} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-smooth duration-700" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-smooth" style={{ background: "linear-gradient(180deg, transparent 50%, oklch(0.18 0.05 155 / 0.8))" }} />
                 <div className="absolute bottom-3 left-4 right-4 text-left text-white text-sm font-semibold opacity-0 group-hover:opacity-100 transition-smooth">{img.alt}</div>
               </motion.button>
@@ -68,7 +68,7 @@ function Gallery() {
           <button className="absolute top-6 right-6 w-10 h-10 grid place-items-center rounded-full bg-white/10 text-white hover:bg-white/20" onClick={() => setActive(null)}>
             <X />
           </button>
-          <img src={active} alt="" className="max-h-[90vh] max-w-[90vw] rounded-2xl shadow-elegant" />
+          <img src={active || undefined} alt="" className="max-h-[90vh] max-w-[90vw] rounded-2xl shadow-elegant" />
         </div>
       )}
     </>

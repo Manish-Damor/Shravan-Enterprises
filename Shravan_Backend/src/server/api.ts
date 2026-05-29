@@ -12,8 +12,10 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
-function errorResponse(message: string, status = 400) {
-  return jsonResponse({ message }, status);
+function errorResponse(message: string, status = 400, errors?: Record<string, string>) {
+  const payload: Record<string, unknown> = { message };
+  if (errors && Object.keys(errors).length > 0) payload.errors = errors;
+  return jsonResponse(payload, status);
 }
 
 type CollectionName =
@@ -336,13 +338,30 @@ async function handlePublicRoutes(request: Request, pathname: string) {
     const body = await request.json();
     const customerName = String(body.customer_name ?? body.name ?? "").trim();
     const mobile = String(body.mobile ?? body.phone ?? "").trim();
-    const email = String(body.email ?? "").trim().toLowerCase() || null;
+    const emailRaw = String(body.email ?? "").trim();
+    const email = emailRaw ? emailRaw.toLowerCase() : null;
     const company = String(body.company ?? "").trim() || null;
     const subject = String(body.subject ?? body.product_name ?? "").trim() || null;
     const message = String(body.message ?? "").trim();
 
-    if (!customerName || !mobile || !message) {
-      return errorResponse("Name, mobile number, and message are required.");
+    const errors: Record<string, string> = {};
+    if (!customerName) errors.customer_name = "Name is required.";
+    else if (customerName.length < 2) errors.customer_name = "Name is too short.";
+
+    if (!mobile) errors.mobile = "Mobile number is required.";
+    else {
+      const digits = mobile.replace(/[^0-9+]/g, "");
+      if (!/^\+?[0-9]{6,}$/.test(digits)) errors.mobile = "Please enter a valid mobile number.";
+    }
+
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Please enter a valid email address.";
+
+    if (!message) errors.message = "Message is required.";
+    else if (message.length < 10) errors.message = "Message is too short (minimum 10 characters).";
+    else if (message.length > 2000) errors.message = "Message is too long.";
+
+    if (Object.keys(errors).length > 0) {
+      return errorResponse("Validation failed", 400, errors);
     }
 
     const now = new Date().toISOString();

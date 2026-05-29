@@ -134,7 +134,7 @@ function BrochurePage() {
             >
               <div className="relative aspect-[16/10] overflow-hidden">
                 <img
-                  src={heroImage}
+                  src={heroImage || undefined}
                   alt="Shravan Enterprises brochure preview"
                   className="h-full w-full object-cover"
                   loading="lazy"

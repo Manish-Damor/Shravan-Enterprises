@@ -83,7 +83,7 @@ function Certifications() {
                 <a href={c.image} target="_blank" rel="noreferrer" className="block">
                   <div className="aspect-[3/4] overflow-hidden bg-secondary/30 sm:aspect-[4/5]">
                     <img
-                      src={c.image}
+                      src={c.image || undefined}
                       alt={c.title}
                       className="h-full w-full object-cover object-top transition-smooth duration-500 hover:scale-[1.02]"
                       loading="lazy"

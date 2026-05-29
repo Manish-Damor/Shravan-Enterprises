@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React, { useEffect } from "react";
 import {
   Outlet,
   Link,
@@ -118,6 +119,14 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    try {
+      document.documentElement.dataset.hydrated = 'true';
+    } catch (e) {
+      // noop in non-browser environments
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
