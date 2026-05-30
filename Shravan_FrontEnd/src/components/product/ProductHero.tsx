@@ -16,8 +16,9 @@ export default function ProductHero({
   const tds = product.tds_pdf ?? null;
   const brochure = product.brochure_pdf ?? null;
   const highlightChips = [
-    ...(product.tags ?? []).slice(0, 2),
+    ...(product.characteristics ? [product.characteristics] : []),
     ...(product.applications ?? []).slice(0, 1),
+    ...(product.tags ?? []).slice(0, 1),
   ].slice(0, 3);
 
   return (
@@ -58,12 +59,17 @@ export default function ProductHero({
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/78">
               <Package2 className="h-3.5 w-3.5" />
-              Dynamic Product Detail
+              Product Detail
             </div>
 
             <h1 className="mt-5 max-w-4xl text-4xl font-bold leading-[1.02] md:text-6xl">
               {product.name}
             </h1>
+            {product.subtitle ? (
+              <div className="mt-4 text-lg font-medium text-emerald-100/90 md:text-2xl">
+                {product.subtitle}
+              </div>
+            ) : null}
             <p className="mt-5 max-w-3xl text-lg leading-relaxed text-white/80">
               {product.short_description ??
                 product.detailed_description ??
@@ -91,32 +97,28 @@ export default function ProductHero({
                 <MessageSquare className="h-4 w-4" />
                 Send Inquiry
               </Link>
-              <a
-                href={tds ?? undefined}
-                target="_blank"
-                rel="noreferrer"
-                className={`inline-flex items-center gap-2 rounded-full border border-white/18 px-5 py-3 font-semibold ${
-                  tds
-                    ? "bg-white/8 text-white transition hover:bg-white/14"
-                    : "pointer-events-none opacity-35"
-                }`}
-              >
-                <Download className="h-4 w-4" />
-                TDS
-              </a>
-              <a
-                href={brochure ?? undefined}
-                target="_blank"
-                rel="noreferrer"
-                className={`inline-flex items-center gap-2 rounded-full border border-white/18 px-5 py-3 font-semibold ${
-                  brochure
-                    ? "bg-white/8 text-white transition hover:bg-white/14"
-                    : "pointer-events-none opacity-35"
-                }`}
-              >
-                <Download className="h-4 w-4" />
-                Brochure
-              </a>
+              {tds ? (
+                <a
+                  href={tds}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/18 bg-white/8 px-5 py-3 font-semibold text-white transition hover:bg-white/14"
+                >
+                  <Download className="h-4 w-4" />
+                  TDS
+                </a>
+              ) : null}
+              {brochure ? (
+                <a
+                  href={brochure}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/18 bg-white/8 px-5 py-3 font-semibold text-white transition hover:bg-white/14"
+                >
+                  <Download className="h-4 w-4" />
+                  Brochure
+                </a>
+              ) : null}
             </div>
           </motion.div>
 
@@ -142,7 +144,7 @@ export default function ProductHero({
                   label="Category"
                   value={category?.title ?? product.category_title ?? product.category_slug ?? "-"}
                 />
-                <MiniFact label="Product Code" value={product.slug} />
+                <MiniFact label="Type" value={product.characteristics ?? product.subtitle ?? "-"} />
               </div>
             </div>
           </motion.div>

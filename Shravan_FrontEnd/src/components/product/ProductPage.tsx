@@ -38,7 +38,10 @@ export default function ProductPage({
           <div className="grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_360px]">
             <div className="space-y-8">
               <ProductOverview product={product} />
-              <SpecsTable specs={product.specifications} />
+              <SpecsTable
+                specs={product.specifications}
+                summary={product.technical_specifications}
+              />
               <DocumentCenter product={product} />
             </div>
 

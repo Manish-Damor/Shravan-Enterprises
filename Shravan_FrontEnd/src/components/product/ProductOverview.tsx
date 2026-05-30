@@ -13,9 +13,21 @@ export default function ProductOverview({
         product.short_description ??
         "No description provided.",
     },
+    ...(product.key_features
+      ? [
+          {
+            title: "Key Features",
+            body: product.key_features,
+          },
+        ]
+      : []),
   ];
 
   const factGroups = [
+    {
+      title: "Product Type",
+      items: product.characteristics ? [product.characteristics] : [],
+    },
     {
       title: "Applications",
       items: product.applications ?? [],
@@ -29,6 +41,16 @@ export default function ProductOverview({
       items: product.tags ?? [],
     },
   ].filter((group) => group.items.length > 0);
+
+  const commercialFacts = [
+    { label: "Unit", value: product.unit_of_measurement ?? "" },
+    { label: "MOQ", value: product.moq ?? "" },
+    { label: "Packing Size", value: product.available_packing_size ?? "" },
+  ].filter((item) => item.value);
+
+  const applicationRows = (product.application_rows ?? []).filter(
+    (item) => item.title,
+  );
 
   return (
     <section className="space-y-8">
@@ -48,6 +70,24 @@ export default function ProductOverview({
           </p>
         </div>
       ))}
+
+      {commercialFacts.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-3">
+          {commercialFacts.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[1.6rem] border border-border bg-card px-5 py-5 shadow-sm"
+            >
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/70">
+                {item.label}
+              </div>
+              <div className="mt-3 text-base font-semibold text-foreground">
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {factGroups.length > 0 ? (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -69,6 +109,34 @@ export default function ProductOverview({
               </div>
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {applicationRows.length > 0 ? (
+        <div className="rounded-[2rem] border border-border bg-card p-7 shadow-card md:p-9">
+          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80">
+            Application Details
+          </div>
+          <h2 className="mt-3 text-3xl font-bold text-foreground">
+            Where This Product Is Used
+          </h2>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {applicationRows.map((item) => (
+              <div
+                key={`${item.title}-${item.description ?? ""}`}
+                className="rounded-[1.5rem] border border-border bg-secondary/35 p-5"
+              >
+                <div className="text-base font-semibold text-foreground">
+                  {item.title}
+                </div>
+                {item.description ? (
+                  <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                    {item.description}
+                  </p>
+                ) : null}
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
     </section>

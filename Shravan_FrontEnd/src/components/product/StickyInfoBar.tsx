@@ -27,15 +27,15 @@ export default function StickyInfoBar({
         </div>
         <div className="flex items-center gap-3">
           <strong>Type:</strong>
-          <span>{product.subtitle ?? "-"}</span>
+          <span>{product.characteristics ?? product.subtitle ?? "-"}</span>
         </div>
         <div className="flex items-center gap-3">
           <strong>Category:</strong>
           <span>{category?.title ?? product.category_title ?? product.category_slug}</span>
         </div>
         <div className="flex items-center gap-3">
-          <strong>SKU:</strong>
-          <span>{product.slug}</span>
+          <strong>Unit:</strong>
+          <span>{product.unit_of_measurement ?? "-"}</span>
         </div>
         <div className="ml-auto flex items-center gap-3">
           <a

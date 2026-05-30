@@ -120,12 +120,24 @@ function extractMediaUrl(value: unknown) {
 }
 
 function extractStringArray(value: unknown) {
+  if (typeof value === "string") {
+    return value
+      .split(/\r?\n|,|;/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
   if (!Array.isArray(value)) return [] as string[];
   return value.map((item) => {
     if (typeof item === "string") return item.trim();
     if (item && typeof item === "object") {
       const record = item as Record<string, unknown>;
-      const label = record.label ?? record.name ?? record.title ?? record.value ?? record.url;
+      const label =
+        record.label ??
+        record.name ??
+        record.title ??
+        record.value ??
+        record.url ??
+        record.property;
       return typeof label === "string" ? label.trim() : "";
     }
     return "";
@@ -240,20 +252,19 @@ async function handlePublicRoutes(request: Request, pathname: string) {
         gallery_images: galleryImages,
         application_images: applicationImages,
         files,
-        applications: extractStringArray(product.application_rows ?? product.applications),
+        applications: extractStringArray(product.applications ?? product.application_rows),
+        application_rows: Array.isArray(product.application_rows) ? product.application_rows : [],
         industries: extractStringArray(product.industries_served),
         tags: extractStringArray(product.tags),
+        characteristics: product.characteristics ?? null,
+        unit_of_measurement: product.unit_of_measurement ?? null,
+        moq: product.moq ?? null,
+        available_packing_size: product.available_packing_size ?? null,
         short_description: product.short_description ?? null,
         detailed_description: product.detailed_description ?? null,
-        product_details: product.product_details ?? null,
         key_features: product.key_features ?? null,
-        benefits: product.benefits ?? null,
-        packaging_details: product.packaging_details ?? null,
-        storage_instructions: product.storage_instructions ?? null,
-        safety_notes: product.safety_notes ?? null,
         technical_specifications: product.technical_specifications ?? null,
         specification_rows: Array.isArray(product.specification_rows) ? product.specification_rows : [],
-        contact_details: product.contact_details ?? null,
         primary_image: product.image ?? null,
         createdAt: product.createdAt ?? null,
         updatedAt: product.updatedAt ?? null,

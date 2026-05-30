@@ -16,6 +16,7 @@ export type PublicProduct = {
   slug: string;
   name: string;
   subtitle: string | null;
+  characteristics?: string | null;
   category_id: string | null;
   category_slug: string | null;
   category_title: string | null;
@@ -29,10 +30,15 @@ export type PublicProduct = {
     type: string | null;
   }>;
   applications?: string[];
+  application_rows?: unknown[];
   industries?: string[];
   tags?: string[];
   short_description: string | null;
   detailed_description: string | null;
+  key_features?: string | null;
+  unit_of_measurement?: string | null;
+  moq?: string | null;
+  available_packing_size?: string | null;
   technical_specifications?: unknown;
   specification_rows?: unknown[];
   createdAt: string | null;
@@ -175,6 +181,7 @@ function normalizeProduct(value: unknown): PublicProduct | null {
     slug,
     name,
     subtitle: product.subtitle ? String(product.subtitle) : null,
+    characteristics: product.characteristics ? String(product.characteristics) : null,
     category_id: product.category_id ? String(product.category_id) : null,
     category_slug: product.category_slug ? String(product.category_slug) : null,
     category_title: product.category_title ? String(product.category_title) : null,
@@ -203,6 +210,7 @@ function normalizeProduct(value: unknown): PublicProduct | null {
     applications: Array.isArray(product.applications)
       ? product.applications.map((item) => String(item).trim()).filter(Boolean)
       : [],
+    application_rows: Array.isArray(product.application_rows) ? product.application_rows : [],
     industries: Array.isArray(product.industries)
       ? product.industries.map((item) => String(item).trim()).filter(Boolean)
       : [],
@@ -211,6 +219,10 @@ function normalizeProduct(value: unknown): PublicProduct | null {
       : [],
     short_description: product.short_description ? String(product.short_description) : null,
     detailed_description: product.detailed_description ? String(product.detailed_description) : null,
+    key_features: product.key_features ? String(product.key_features) : null,
+    unit_of_measurement: product.unit_of_measurement ? String(product.unit_of_measurement) : null,
+    moq: product.moq ? String(product.moq) : null,
+    available_packing_size: product.available_packing_size ? String(product.available_packing_size) : null,
     technical_specifications: product.technical_specifications ?? null,
     specification_rows: Array.isArray(product.specification_rows) ? product.specification_rows : [],
     createdAt: product.createdAt ? String(product.createdAt) : null,

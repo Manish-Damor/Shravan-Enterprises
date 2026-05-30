@@ -30,6 +30,7 @@ export type NormalizedProduct = {
   slug: string;
   name: string;
   subtitle?: string | null;
+  characteristics?: string | null;
   category_id?: string | null;
   category_slug?: string | null;
   category_title?: string | null;
@@ -37,10 +38,17 @@ export type NormalizedProduct = {
   image?: string | null;
   gallery_images?: string[];
   applications?: string[];
+  application_rows?: Array<{ title: string; description?: string | null }>;
   industries?: string[];
   tags?: string[];
   short_description?: string | null;
   detailed_description?: string | null;
+  key_features?: string | null;
+  unit_of_measurement?: string | null;
+  moq?: string | null;
+  available_packing_size?: string | null;
+  technical_specifications?: string | null;
+  specification_rows?: Array<Record<string, unknown>>;
   specifications?: ProductSpec | null;
   files?: NormalizedProductFile[];
   tds_pdf?: string | null;
@@ -60,6 +68,34 @@ export type NormalizedCategory = {
 
 function asString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function asStringArray(value: unknown) {
+  if (typeof value === "string") {
+    return value
+      .split(/\r?\n|,|;/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (!Array.isArray(value)) return [] as string[];
+
+  return value
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (item && typeof item === "object") {
+        const record = item as Record<string, unknown>;
+        return (
+          asString(record.label) ||
+          asString(record.name) ||
+          asString(record.title) ||
+          asString(record.value) ||
+          asString(record.property)
+        );
+      }
+      return "";
+    })
+    .filter(Boolean);
 }
 
 function readMediaUrl(value: MediaLike) {
@@ -148,16 +184,27 @@ export function normalizeProduct(raw: unknown): NormalizedProduct | null {
         .filter((item): item is string => Boolean(item))
     : [];
 
+  const specificationRows = Array.isArray(product.specification_rows)
+    ? product.specification_rows.filter(
+        (item): item is Record<string, unknown> =>
+          Boolean(item) && typeof item === "object",
+      )
+    : [];
+
+  const technicalSummary = asString(product.technical_specifications) || null;
   const specifications =
-    product.technical_specifications ??
-    product.specifications ??
-    (Array.isArray(product.specification_rows) ? product.specification_rows : null);
+    specificationRows.length > 0
+      ? specificationRows
+      : technicalSummary ??
+        product.specifications ??
+        null;
 
   return {
     id: product.id ? String(product.id) : product._id ? String(product._id) : null,
     slug,
     name,
     subtitle: product.subtitle ? String(product.subtitle) : null,
+    characteristics: product.characteristics ? String(product.characteristics) : null,
     category_id: product.category_id ? String(product.category_id) : null,
     category_slug: product.category_slug ? String(product.category_slug) : null,
     category_title: product.category_title ? String(product.category_title) : null,
@@ -167,17 +214,39 @@ export function normalizeProduct(raw: unknown): NormalizedProduct | null {
       readMediaUrl(product.primary_image as MediaLike) ??
       readMediaUrl(product.og_image as MediaLike),
     gallery_images: galleryImages,
-    applications: Array.isArray(product.applications)
-      ? product.applications.map((item) => String(item).trim()).filter(Boolean)
+    applications: asStringArray(product.applications),
+    application_rows: Array.isArray(product.application_rows)
+      ? product.application_rows
+          .map((item) => {
+            if (!item || typeof item !== "object") return null;
+            const row = item as Record<string, unknown>;
+            const title =
+              asString(row.title) ||
+              asString(row.name) ||
+              asString(row.label) ||
+              asString(row.application);
+            if (!title) return null;
+            return {
+              title,
+              description: asString(row.description) || asString(row.notes) || null,
+            };
+          })
+          .filter(
+            (
+              item,
+            ): item is { title: string; description?: string | null } => item !== null,
+          )
       : [],
-    industries: Array.isArray(product.industries)
-      ? product.industries.map((item) => String(item).trim()).filter(Boolean)
-      : [],
-    tags: Array.isArray(product.tags)
-      ? product.tags.map((item) => String(item).trim()).filter(Boolean)
-      : [],
+    industries: asStringArray(product.industries ?? product.industries_served),
+    tags: asStringArray(product.tags),
     short_description: product.short_description ? String(product.short_description) : null,
     detailed_description: product.detailed_description ? String(product.detailed_description) : null,
+    key_features: product.key_features ? String(product.key_features) : null,
+    unit_of_measurement: product.unit_of_measurement ? String(product.unit_of_measurement) : null,
+    moq: product.moq ? String(product.moq) : null,
+    available_packing_size: product.available_packing_size ? String(product.available_packing_size) : null,
+    technical_specifications: technicalSummary,
+    specification_rows: specificationRows,
     specifications: specifications as ProductSpec | null,
     files,
     tds_pdf:
