@@ -11,6 +11,8 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 export default defineConfig({
   vite: {
     server: {
+      port: 8095,
+      strictPort: true,
       proxy: {
         "/api": "http://localhost:8082",
       },

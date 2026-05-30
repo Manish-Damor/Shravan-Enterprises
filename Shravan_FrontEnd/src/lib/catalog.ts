@@ -71,7 +71,7 @@ if (import.meta.env.DEV && !API_BASE_URL) {
   API_BASE_URL = "http://localhost:8082";
 }
 
-const LOCAL_API_PORT_CANDIDATES = ["8083", "8082", "8081"] as const;
+const LOCAL_API_PORT_CANDIDATES = ["8082"] as const;
 
 const fallbackBySlug = new Map(fallbackCategories.map((category) => [category.slug, category]));
 
