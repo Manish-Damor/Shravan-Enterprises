@@ -7,12 +7,12 @@ const distServer = path.join(distRoot, "server");
 const serverManifest = path.join(distServer, ".vite", "manifest.json");
 
 if (!fs.existsSync(distClient)) {
-  console.error("Frontend dist client folder not found:", distClient);
+  console.error("Admin dist client folder not found:", distClient);
   process.exit(1);
 }
 
 if (!fs.existsSync(serverManifest)) {
-  console.error("Frontend server manifest not found:", serverManifest);
+  console.error("Admin server manifest not found:", serverManifest);
   process.exit(1);
 }
 
@@ -42,7 +42,7 @@ const stylesEntry = Object.values(manifest).find(
 const clientEntryScript = findClientEntryScript(path.join(distClient, "assets"));
 
 if (!clientEntryScript) {
-  console.error("Frontend client entry script could not be determined.");
+  console.error("Admin client entry script could not be determined.");
   process.exit(1);
 }
 
@@ -52,8 +52,8 @@ const clientHtml = `<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Shravan Enterprises</title>
-    <meta name="description" content="Shravan Enterprises frontend" />
+    <title>Admin Panel</title>
+    <meta name="description" content="Business admin panel" />
 ${stylesheetHref ? `    <link rel="stylesheet" href="${stylesheetHref}" />` : ""}
   </head>
   <body>
@@ -62,23 +62,20 @@ ${stylesheetHref ? `    <link rel="stylesheet" href="${stylesheetHref}" />` : ""
 </html>
 `;
 
-for (const name of fs.readdirSync(distRoot)) {
-  if (name === "client" || name === "server") {
-    continue;
-  }
-
-  fs.rmSync(path.join(distRoot, name), { recursive: true, force: true });
-}
-
 fs.writeFileSync(path.join(distClient, "index.html"), clientHtml, "utf8");
 
 for (const name of fs.readdirSync(distClient)) {
   const src = path.join(distClient, name);
   const dest = path.join(distRoot, name);
+
+  if (fs.existsSync(dest)) {
+    fs.rmSync(dest, { recursive: true, force: true });
+  }
+
   fs.renameSync(src, dest);
 }
 
 fs.rmSync(distClient, { recursive: true, force: true });
 fs.rmSync(distServer, { recursive: true, force: true });
 
-console.log("flatten-dist: completed, dist contains only frontend files at", distRoot);
+console.log("flatten-admin-dist: completed, dist contains only frontend files at", distRoot);
