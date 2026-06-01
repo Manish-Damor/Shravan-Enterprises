@@ -6,11 +6,11 @@ import {
   ChevronDown,
   Menu,
   Package2,
-  Shield,
   Sparkles,
   X,
 } from "lucide-react";
 import { fetchPublicCatalog, getFallbackCatalog } from "@/lib/catalog";
+import { BrandLogo } from "./BrandLogo";
 
 const links = [
   { to: "/", label: "Home" },
@@ -115,23 +115,55 @@ export function Navbar() {
   const activeProducts = products.filter(
     (product) => product.categorySlug === activeCategory?.slug,
   );
+  const isHomePage = pathname === "/";
+  const useHeroNavbar = isHomePage && !scrolled;
+
+  const headerClassName = useHeroNavbar
+    ? "border-b border-white/10 bg-[linear-gradient(180deg,rgba(6,32,19,0.74),rgba(6,32,19,0.42)_58%,rgba(6,32,19,0))] py-4 text-white"
+    : scrolled
+      ? "border-b border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(247,251,248,0.86))] py-3 text-foreground shadow-[0_20px_60px_-28px_rgba(16,81,50,0.28)] backdrop-blur-2xl"
+      : "border-b border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(255,255,255,0.62))] py-4 text-foreground shadow-[0_18px_45px_-35px_rgba(16,81,50,0.22)] backdrop-blur-xl";
+
+  const navLinkClassName = useHeroNavbar
+    ? "relative rounded-full px-4 py-2 text-sm font-medium text-white/78 transition-smooth hover:bg-white/8 hover:text-white after:absolute after:bottom-1 after:left-1/2 after:h-0.5 after:w-0 after:-translate-x-1/2 after:bg-emerald-300 after:transition-all after:content-[''] hover:after:w-6"
+    : "relative rounded-full px-4 py-2 text-sm font-medium text-foreground/80 transition-smooth hover:bg-primary/6 hover:text-primary after:absolute after:bottom-1 after:left-1/2 after:h-0.5 after:w-0 after:-translate-x-1/2 after:bg-primary after:transition-all after:content-[''] hover:after:w-6";
+  const navActiveClassName = useHeroNavbar ? "bg-white/10 text-white" : "bg-primary/8 text-primary";
+  const productsButtonClassName = useHeroNavbar
+    ? `relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-smooth ${
+        isProductsPath(pathname) ? "bg-white/10 text-white" : "text-white/78 hover:bg-white/8 hover:text-white"
+      }`
+    : `relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-smooth ${
+        isProductsPath(pathname) ? "bg-primary/8 text-primary" : "text-foreground/80 hover:bg-primary/6 hover:text-primary"
+      }`;
+  const productsChevronClassName = useHeroNavbar
+    ? `h-4 w-4 transition-smooth ${productsOpen ? "rotate-180 text-emerald-300" : "text-white/65"}`
+    : `h-4 w-4 transition-smooth ${productsOpen ? "rotate-180 text-primary" : ""}`;
+  const mobileButtonClassName = useHeroNavbar ? "lg:hidden p-2 text-white" : "lg:hidden p-2 text-foreground";
+  const mobilePanelClassName = useHeroNavbar
+    ? "mt-3 rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(7,37,22,0.92),rgba(9,47,29,0.82))] px-6 py-4 text-white shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6)] backdrop-blur-2xl animate-fade-in lg:hidden"
+    : "mt-3 rounded-[1.6rem] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,251,248,0.9))] px-6 py-4 animate-fade-in shadow-card backdrop-blur-2xl lg:hidden";
+  const mobileLinkClassName = useHeroNavbar
+    ? "rounded-lg px-4 py-3 text-sm font-medium text-white/84 hover:bg-white/8 hover:text-white"
+    : "rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary";
 
   return (
     <header
-      className={`fixed top-0 inset-x-0 z-50 transition-smooth ${
-        scrolled ? "glass shadow-card py-3" : "bg-transparent py-5"
-      }`}
+      className={`fixed top-0 inset-x-0 z-50 transition-smooth ${headerClassName}`}
     >
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="grid h-10 w-10 place-items-center rounded-lg gradient-primary shadow-glow transition-smooth group-hover:scale-110">
-              <Shield className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
-            </div>
-            <div className="leading-tight">
-              <div className="text-base font-bold tracking-tight text-foreground">SHRAVAN</div>
-              <div className="text-[10px] tracking-[0.25em] text-muted-foreground">ENTERPRISES</div>
-            </div>
+            <BrandLogo
+              className="transition-smooth group-hover:scale-[1.02]"
+              logoWrapClassName={`${
+                useHeroNavbar
+                  ? "border-white/12 bg-white/98 shadow-[0_18px_42px_-24px_rgba(0,0,0,0.55)]"
+                  : "border-primary/8 bg-white/96"
+              }`}
+              imageClassName="h-8 md:h-9"
+              textClassName={useHeroNavbar ? "text-white" : "text-foreground"}
+              subtitleClassName={useHeroNavbar ? "text-white/58" : "text-muted-foreground"}
+            />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1">
@@ -139,8 +171,8 @@ export function Navbar() {
               <Link
                 key={l.to}
                 to={l.to}
-                className="relative rounded-full px-4 py-2 text-sm font-medium text-foreground/80 transition-smooth hover:text-primary after:absolute after:bottom-1 after:left-1/2 after:h-0.5 after:w-0 after:-translate-x-1/2 after:bg-primary after:transition-all after:content-[''] hover:after:w-6"
-                activeProps={{ className: "text-primary" }}
+                className={navLinkClassName}
+                activeProps={{ className: navActiveClassName }}
                 activeOptions={{ exact: l.to === "/" }}
               >
                 {l.label}
@@ -156,18 +188,16 @@ export function Navbar() {
                 type="button"
                 onFocus={openProductsMenu}
                 onClick={() => setProductsOpen((current) => !current)}
-                className={`relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-smooth ${
-                  isProductsPath(pathname) ? "text-primary" : "text-foreground/80 hover:text-primary"
-                }`}
+                className={productsButtonClassName}
                 aria-expanded={productsOpen}
                 aria-haspopup="true"
               >
                 Products
-                <ChevronDown
-                  className={`h-4 w-4 transition-smooth ${productsOpen ? "rotate-180 text-primary" : ""}`}
-                />
+                <ChevronDown className={productsChevronClassName} />
                 <span
-                  className={`absolute bottom-1 left-1/2 h-0.5 -translate-x-1/2 bg-primary transition-all ${
+                  className={`absolute bottom-1 left-1/2 h-0.5 -translate-x-1/2 transition-all ${
+                    useHeroNavbar ? "bg-emerald-300" : "bg-primary"
+                  } ${
                     isProductsPath(pathname) || productsOpen ? "w-6" : "w-0"
                   }`}
                 />
@@ -194,7 +224,7 @@ export function Navbar() {
                           </p>
                         </div>
 
-                        <div className="relative mt-6 space-y-2">
+                        <div className="relative mt-6 max-h-[calc(460px-150px)] space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/35">
                           {categories.map((category) => {
                             const isActive = category.slug === activeCategory.slug;
 
@@ -366,8 +396,8 @@ export function Navbar() {
               <Link
                 key={l.to}
                 to={l.to}
-                className="relative rounded-full px-4 py-2 text-sm font-medium text-foreground/80 transition-smooth hover:text-primary after:absolute after:bottom-1 after:left-1/2 after:h-0.5 after:w-0 after:-translate-x-1/2 after:bg-primary after:transition-all after:content-[''] hover:after:w-6"
-                activeProps={{ className: "text-primary" }}
+                className={navLinkClassName}
+                activeProps={{ className: navActiveClassName }}
               >
                 {l.label}
               </Link>
@@ -382,7 +412,7 @@ export function Navbar() {
           </Link>
 
           <button
-            className="lg:hidden p-2 text-foreground"
+            className={mobileButtonClassName}
             onClick={() => setOpen(!open)}
             aria-label="Menu"
           >
@@ -391,26 +421,34 @@ export function Navbar() {
         </div>
 
         {open && (
-          <div className="mt-3 border-t border-glass-border glass px-6 py-4 animate-fade-in lg:hidden">
+          <div className={mobilePanelClassName}>
             <nav className="flex flex-col gap-1">
               <Link
                 to="/"
-                className="rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary"
+                className={mobileLinkClassName}
               >
                 Home
               </Link>
               <Link
                 to="/about"
-                className="rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary"
+                className={mobileLinkClassName}
               >
                 About
               </Link>
 
-              <div className="rounded-2xl border border-border/70 bg-white/60 p-2">
+              <div
+                className={`rounded-2xl p-2 ${
+                  useHeroNavbar
+                    ? "border border-white/10 bg-white/6"
+                    : "border border-border/70 bg-white/60"
+                }`}
+              >
                 <button
                   type="button"
                   onClick={() => setMobileProductsOpen((current) => !current)}
-                  className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-left text-sm font-semibold text-foreground"
+                  className={`flex w-full items-center justify-between rounded-xl px-2 py-2 text-left text-sm font-semibold ${
+                    useHeroNavbar ? "text-white" : "text-foreground"
+                  }`}
                 >
                   <span>Products</span>
                   <ChevronDown
@@ -422,7 +460,9 @@ export function Navbar() {
                   <div className="mt-2 space-y-3 px-2 pb-2">
                     <Link
                       to="/products"
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
+                      className={`inline-flex items-center gap-2 text-sm font-semibold ${
+                        useHeroNavbar ? "text-emerald-200" : "text-primary"
+                      }`}
                     >
                       View all categories
                       <ArrowRight className="h-4 w-4" />
@@ -436,7 +476,11 @@ export function Navbar() {
                       return (
                         <div
                           key={category.slug}
-                          className="rounded-[1.25rem] border border-border/70 bg-white/80 p-3"
+                          className={`rounded-[1.25rem] p-3 ${
+                            useHeroNavbar
+                              ? "border border-white/10 bg-white/8"
+                              : "border border-border/70 bg-white/80"
+                          }`}
                         >
                           <Link
                             to="/products/$slug"
@@ -452,10 +496,10 @@ export function Navbar() {
                               height={96}
                             />
                             <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-foreground">
+                              <div className={`truncate text-sm font-semibold ${useHeroNavbar ? "text-white" : "text-foreground"}`}>
                                 {category.title}
                               </div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className={useHeroNavbar ? "text-xs text-white/58" : "text-xs text-muted-foreground"}>
                                 {category.productCount > 0
                                   ? `${category.productCount} products`
                                   : `${category.items.length} category items`}
@@ -470,13 +514,20 @@ export function Navbar() {
                                     key={product.slug}
                                     to="/product/$slug"
                                     params={{ slug: product.slug }}
-                                    className="block text-sm text-foreground/80 transition hover:text-primary"
+                                    className={`block text-sm transition ${
+                                      useHeroNavbar
+                                        ? "text-white/76 hover:text-white"
+                                        : "text-foreground/80 hover:text-primary"
+                                    }`}
                                   >
                                     {product.name}
                                   </Link>
                                 ))
                               : category.items.slice(0, 3).map((item) => (
-                                  <div key={item} className="text-sm text-foreground/75">
+                                  <div
+                                    key={item}
+                                    className={useHeroNavbar ? "text-sm text-white/72" : "text-sm text-foreground/75"}
+                                  >
                                     {item}
                                   </div>
                                 )))}
@@ -492,7 +543,7 @@ export function Navbar() {
                 <Link
                   key={l.to}
                   to={l.to}
-                  className="rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary"
+                  className={mobileLinkClassName}
                 >
                   {l.label}
                 </Link>

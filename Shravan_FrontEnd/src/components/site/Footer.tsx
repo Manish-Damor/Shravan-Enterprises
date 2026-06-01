@@ -1,20 +1,32 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Mail, Phone, MapPin, Shield, Facebook, Instagram, Linkedin } from "lucide-react";
+import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin } from "lucide-react";
+import { fetchPublicCatalog, getFallbackCatalog } from "@/lib/catalog";
+import { BrandLogo } from "./BrandLogo";
 
 export function Footer() {
+  const { data: catalog } = useQuery({
+    queryKey: ["public-catalog"],
+    queryFn: fetchPublicCatalog,
+    staleTime: 5 * 60 * 1000,
+  });
+  const activeCatalog = catalog ?? getFallbackCatalog();
+  const footerCategories = [...(activeCatalog.categories ?? [])]
+    .sort((left, right) => (left.sort_order ?? 0) - (right.sort_order ?? 0))
+    .slice(0, 6);
+
   return (
     <footer className="relative mt-24 text-primary-foreground" style={{ background: "var(--gradient-hero)" }}>
       <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, oklch(0.65 0.18 152 / 0.3), transparent 50%)" }} />
       <div className="relative container mx-auto px-6 py-16 grid gap-12 md:grid-cols-2 lg:grid-cols-4">
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-11 h-11 rounded-lg bg-white/10 backdrop-blur grid place-items-center">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="font-bold text-lg">SHRAVAN</div>
-              <div className="text-[10px] tracking-[0.25em] text-white/70">ENTERPRISES</div>
-            </div>
+            <BrandLogo
+              logoWrapClassName="border-white/12 bg-white/96"
+              imageClassName="h-9"
+              textClassName="text-white"
+              subtitleClassName="text-white/58"
+            />
           </div>
           <p className="text-sm text-white/70 leading-relaxed">
             ISO 9001:2015 certified supplier of premium FRP raw materials, fiberglass, marble & granite consumables since 2018.
@@ -42,11 +54,17 @@ export function Footer() {
         <div>
           <h4 className="font-semibold mb-4 text-base">Product Categories</h4>
           <ul className="space-y-2 text-sm text-white/70">
-            <li>Fiber Reinforcement</li>
-            <li>Resin & Chemicals</li>
-            <li>Vacuum Infusion</li>
-            <li>FRP Accessories</li>
-            <li>Stone Care & Surface</li>
+            {footerCategories.map((category) => (
+              <li key={category.slug}>
+                <Link
+                  to="/products/$slug"
+                  params={{ slug: category.slug }}
+                  className="hover:text-white transition-smooth"
+                >
+                  {category.title}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
 

@@ -147,6 +147,7 @@ function Contact() {
         eyebrow="Contact Us"
         title="Let's build something premium together."
         description="Speak to our team for custom quotes, bulk orders or technical assistance."
+        variant="contact"
       />
 
       <section className="py-20">

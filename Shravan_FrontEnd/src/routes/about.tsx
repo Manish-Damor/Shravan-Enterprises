@@ -38,6 +38,7 @@ function About() {
         eyebrow="About Shravan"
         title="Premium materials. Industrial trust. Since 2018."
         description="We are an ISO 9001:2015 certified company supplying the building blocks of India's marble, granite, FRP and composite industries."
+        variant="about"
       />
 
       {/* Story */}
