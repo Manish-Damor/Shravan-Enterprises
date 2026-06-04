@@ -1,15 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import {
-  ArrowRight,
-  ChevronDown,
-  Menu,
-  Package2,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { ArrowRight, ChevronDown, Menu, Package2, Sparkles, X } from "lucide-react";
 import { fetchPublicCatalog, getFallbackCatalog } from "@/lib/catalog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { BrandLogo } from "./BrandLogo";
 
 const links = [
@@ -39,7 +33,31 @@ type MenuProduct = {
 };
 
 function isProductsPath(pathname: string) {
-  return pathname === "/products" || pathname.startsWith("/products/") || pathname.startsWith("/product/");
+  return (
+    pathname === "/products" ||
+    pathname.startsWith("/products/") ||
+    pathname.startsWith("/product/")
+  );
+}
+
+function getPreferredCategorySlug(categories: MenuCategory[]) {
+  const mostPopulatedCategory = [...categories].sort((left, right) => {
+    if (right.productCount !== left.productCount) {
+      return right.productCount - left.productCount;
+    }
+
+    return right.items.length - left.items.length;
+  })[0];
+
+  if ((mostPopulatedCategory?.productCount ?? 0) > 0) {
+    return mostPopulatedCategory?.slug ?? null;
+  }
+
+  if ((mostPopulatedCategory?.items.length ?? 0) > 0) {
+    return mostPopulatedCategory?.slug ?? null;
+  }
+
+  return categories[0]?.slug ?? null;
 }
 
 export function Navbar() {
@@ -53,22 +71,25 @@ export function Navbar() {
   });
 
   const fallbackCatalog = getFallbackCatalog();
-  const categories: MenuCategory[] = (catalog?.categories ?? fallbackCatalog.categories).map((category) => {
-    const productCount = (catalog?.products ?? []).filter(
-      (product) => product.category_slug === category.slug,
-    ).length;
+  const catalogProducts = catalog?.products ?? fallbackCatalog.products;
+  const categories: MenuCategory[] = (catalog?.categories ?? fallbackCatalog.categories).map(
+    (category) => {
+      const productCount = catalogProducts.filter(
+        (product) => product.category_slug === category.slug,
+      ).length;
 
-    return {
-      slug: category.slug,
-      title: category.title,
-      tagline: category.tagline,
-      image: category.image,
-      items: category.items,
-      productCount,
-    };
-  });
+      return {
+        slug: category.slug,
+        title: category.title,
+        tagline: category.tagline,
+        image: category.image,
+        items: category.items,
+        productCount,
+      };
+    },
+  );
 
-  const products: MenuProduct[] = (catalog?.products ?? []).map((product) => ({
+  const products: MenuProduct[] = catalogProducts.map((product) => ({
     slug: product.slug,
     name: product.name,
     categorySlug: product.category_slug,
@@ -78,7 +99,9 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
-  const [activeCategorySlug, setActiveCategorySlug] = useState<string | null>(categories[0]?.slug ?? null);
+  const [activeCategorySlug, setActiveCategorySlug] = useState<string | null>(() =>
+    getPreferredCategorySlug(categories),
+  );
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
 
   const openProductsMenu = () => setProductsOpen(true);
@@ -99,7 +122,7 @@ export function Navbar() {
 
     const activeExists = categories.some((category) => category.slug === activeCategorySlug);
     if (!activeExists) {
-      setActiveCategorySlug(categories[0].slug);
+      setActiveCategorySlug(getPreferredCategorySlug(categories));
     }
   }, [activeCategorySlug, categories]);
 
@@ -115,6 +138,15 @@ export function Navbar() {
   const activeProducts = products.filter(
     (product) => product.categorySlug === activeCategory?.slug,
   );
+  const visibleProducts =
+    activeProducts.length > 0
+      ? activeProducts
+      : (activeCategory?.items ?? []).map((item) => ({
+          slug: activeCategory?.slug ?? item,
+          name: item,
+          categorySlug: activeCategory?.slug ?? null,
+          tags: [],
+        }));
   const isHomePage = pathname === "/";
   const useHeroNavbar = isHomePage && !scrolled;
 
@@ -130,15 +162,21 @@ export function Navbar() {
   const navActiveClassName = useHeroNavbar ? "bg-white/10 text-white" : "bg-primary/8 text-primary";
   const productsButtonClassName = useHeroNavbar
     ? `relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-smooth ${
-        isProductsPath(pathname) ? "bg-white/10 text-white" : "text-white/78 hover:bg-white/8 hover:text-white"
+        isProductsPath(pathname)
+          ? "bg-white/10 text-white"
+          : "text-white/78 hover:bg-white/8 hover:text-white"
       }`
     : `relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-smooth ${
-        isProductsPath(pathname) ? "bg-primary/8 text-primary" : "text-foreground/80 hover:bg-primary/6 hover:text-primary"
+        isProductsPath(pathname)
+          ? "bg-primary/8 text-primary"
+          : "text-foreground/80 hover:bg-primary/6 hover:text-primary"
       }`;
   const productsChevronClassName = useHeroNavbar
     ? `h-4 w-4 transition-smooth ${productsOpen ? "rotate-180 text-emerald-300" : "text-white/65"}`
     : `h-4 w-4 transition-smooth ${productsOpen ? "rotate-180 text-primary" : ""}`;
-  const mobileButtonClassName = useHeroNavbar ? "lg:hidden p-2 text-white" : "lg:hidden p-2 text-foreground";
+  const mobileButtonClassName = useHeroNavbar
+    ? "lg:hidden p-2 text-white"
+    : "lg:hidden p-2 text-foreground";
   const mobilePanelClassName = useHeroNavbar
     ? "mt-3 rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(7,37,22,0.92),rgba(9,47,29,0.82))] px-6 py-4 text-white shadow-[0_30px_70px_-30px_rgba(0,0,0,0.6)] backdrop-blur-2xl animate-fade-in lg:hidden"
     : "mt-3 rounded-[1.6rem] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(247,251,248,0.9))] px-6 py-4 animate-fade-in shadow-card backdrop-blur-2xl lg:hidden";
@@ -147,26 +185,25 @@ export function Navbar() {
     : "rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-secondary";
 
   return (
-    <header
-      className={`fixed top-0 inset-x-0 z-50 transition-smooth ${headerClassName}`}
-    >
+    <header className={`fixed top-0 inset-x-0 z-50 transition-smooth ${headerClassName}`}>
       <div className="container mx-auto px-6">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 group">
+        <div className="flex items-center justify-between gap-4">
+          <Link to="/" className="group flex min-w-0 items-center">
             <BrandLogo
               className="transition-smooth group-hover:scale-[1.02]"
               logoWrapClassName={`${
                 useHeroNavbar
                   ? "border-white/12 bg-white/98 shadow-[0_18px_42px_-24px_rgba(0,0,0,0.55)]"
                   : "border-primary/8 bg-white/96"
-              }`}
-              imageClassName="h-8 md:h-9"
-              textClassName={useHeroNavbar ? "text-white" : "text-foreground"}
-              subtitleClassName={useHeroNavbar ? "text-white/58" : "text-muted-foreground"}
+              } px-0.5`}
+              imageClassName="h-10 scale-[1.18] sm:h-11 md:h-[2.95rem]"
+              copyClassName="min-w-0"
+              textClassName={`${useHeroNavbar ? "text-white" : "text-foreground"} text-[0.95rem] sm:text-base`}
+              subtitleClassName={`${useHeroNavbar ? "text-white/58" : "text-muted-foreground"} text-[9px] sm:text-[10px]`}
             />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-0.5">
             {links.slice(0, 2).map((l) => (
               <Link
                 key={l.to}
@@ -197,9 +234,7 @@ export function Navbar() {
                 <span
                   className={`absolute bottom-1 left-1/2 h-0.5 -translate-x-1/2 transition-all ${
                     useHeroNavbar ? "bg-emerald-300" : "bg-primary"
-                  } ${
-                    isProductsPath(pathname) || productsOpen ? "w-6" : "w-0"
-                  }`}
+                  } ${isProductsPath(pathname) || productsOpen ? "w-6" : "w-0"}`}
                 />
               </button>
 
@@ -208,8 +243,8 @@ export function Navbar() {
                   <div className="absolute inset-x-0 -top-5 h-5" />
                   <div className="overflow-hidden rounded-[2rem] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,252,249,0.96))] shadow-[0_32px_90px_-30px_rgba(16,81,50,0.38)] backdrop-blur-2xl">
                     <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(16,81,50,0.32),transparent)]" />
-                    <div className="grid min-h-[460px] grid-cols-[320px_1fr]">
-                      <div className="relative overflow-hidden border-r border-border/70 bg-[linear-gradient(180deg,rgba(16,81,50,0.04),rgba(16,81,50,0.01))] p-5">
+                    <div className="grid h-[460px] grid-cols-[320px_1fr]">
+                      <div className="relative flex h-full min-h-0 flex-col overflow-hidden border-r border-border/70 bg-[linear-gradient(180deg,rgba(16,81,50,0.04),rgba(16,81,50,0.01))] p-5">
                         <div className="absolute -left-10 top-10 h-36 w-36 rounded-full bg-primary/8 blur-3xl" />
                         <div className="relative">
                           <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
@@ -220,57 +255,65 @@ export function Navbar() {
                             Browse by category
                           </h3>
                           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                            Live categories from your system with direct access into category and product pages.
+                            Live categories from your system with direct access into category and
+                            product pages.
                           </p>
                         </div>
 
-                        <div className="relative mt-6 max-h-[calc(460px-150px)] space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/35">
-                          {categories.map((category) => {
-                            const isActive = category.slug === activeCategory.slug;
+                        <ScrollArea
+                          type="always"
+                          className="mt-6 min-h-0 flex-1 pr-1 [&_[data-orientation='vertical']]:w-3 [&_[data-radix-scroll-area-thumb]]:bg-primary/30"
+                        >
+                          <div className="space-y-2 pr-2">
+                            {categories.map((category) => {
+                              const isActive = category.slug === activeCategory.slug;
 
-                            return (
-                              <button
-                                key={category.slug}
-                                type="button"
-                                onMouseEnter={() => setActiveCategorySlug(category.slug)}
-                                onFocus={() => setActiveCategorySlug(category.slug)}
-                                className={`flex w-full items-center gap-3 rounded-[1.4rem] border px-3 py-3 text-left transition-smooth ${
-                                  isActive
-                                    ? "border-primary/20 bg-white shadow-card"
-                                    : "border-transparent hover:border-primary/10 hover:bg-white/70"
-                                }`}
-                              >
-                                <img
-                                  src={category.image || undefined}
-                                  alt={category.title}
-                                  className="h-12 w-12 rounded-2xl object-cover"
-                                  loading="lazy"
-                                  width={96}
-                                  height={96}
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <div className="truncate text-sm font-semibold text-foreground">
-                                    {category.title}
-                                  </div>
-                                  <div className="mt-1 text-xs text-muted-foreground">
-                                    {category.productCount > 0
-                                      ? `${category.productCount} products`
-                                      : `${category.items.length} category items`}
-                                  </div>
-                                </div>
-                                <ChevronDown
-                                  className={`h-4 w-4 shrink-0 transition-smooth ${
-                                    isActive ? "-rotate-90 text-primary" : "-rotate-90 text-muted-foreground"
+                              return (
+                                <button
+                                  key={category.slug}
+                                  type="button"
+                                  onMouseEnter={() => setActiveCategorySlug(category.slug)}
+                                  onFocus={() => setActiveCategorySlug(category.slug)}
+                                  className={`flex w-full items-center gap-3 rounded-[1.4rem] border px-3 py-3 text-left transition-smooth ${
+                                    isActive
+                                      ? "border-primary/20 bg-white shadow-card"
+                                      : "border-transparent hover:border-primary/10 hover:bg-white/70"
                                   }`}
-                                />
-                              </button>
-                            );
-                          })}
-                        </div>
+                                >
+                                  <img
+                                    src={category.image || undefined}
+                                    alt={category.title}
+                                    className="h-12 w-12 rounded-2xl object-cover"
+                                    loading="lazy"
+                                    width={96}
+                                    height={96}
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="truncate text-sm font-semibold text-foreground">
+                                      {category.title}
+                                    </div>
+                                    <div className="mt-1 text-xs text-muted-foreground">
+                                      {category.productCount > 0
+                                        ? `${category.productCount} products`
+                                        : `${category.items.length} category items`}
+                                    </div>
+                                  </div>
+                                  <ChevronDown
+                                    className={`h-4 w-4 shrink-0 transition-smooth ${
+                                      isActive
+                                        ? "-rotate-90 text-primary"
+                                        : "-rotate-90 text-muted-foreground"
+                                    }`}
+                                  />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </ScrollArea>
                       </div>
 
-                      <div className="grid grid-cols-[minmax(0,1fr)_290px] gap-0">
-                        <div className="p-6">
+                      <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_290px] gap-0">
+                        <div className="flex h-full min-h-0 flex-col p-6">
                           <div className="flex items-start justify-between gap-6 border-b border-border/70 pb-5">
                             <div className="max-w-2xl">
                               <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">
@@ -293,55 +336,52 @@ export function Navbar() {
                             </Link>
                           </div>
 
-                          <div className="mt-6 grid gap-3 md:grid-cols-2">
-                            {(activeProducts.length > 0
-                              ? activeProducts
-                              : activeCategory.items.map((item) => ({
-                                  slug: activeCategory.slug,
-                                  name: item,
-                                  categorySlug: activeCategory.slug,
-                                  tags: [],
-                                }))
-                            ).slice(0, 10).map((product, index) => (
-                              activeProducts.length > 0 ? (
-                                <Link
-                                  key={product.slug}
-                                  to="/product/$slug"
-                                  params={{ slug: product.slug }}
-                                  className="group rounded-[1.4rem] border border-border/75 bg-white/75 px-4 py-4 transition-smooth hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-card"
-                                >
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/60">
-                                        {String(index + 1).padStart(2, "0")}
-                                      </div>
-                                      <div className="mt-2 line-clamp-2 text-sm font-semibold leading-6 text-foreground">
-                                        {product.name}
-                                      </div>
-                                      {product.tags.length > 0 ? (
-                                        <div className="mt-2 text-xs text-muted-foreground">
-                                          {product.tags.slice(0, 2).join(" · ")}
+                          <ScrollArea
+                            type="always"
+                            className="mt-6 min-h-0 flex-1 pr-1 [&_[data-orientation='vertical']]:w-3 [&_[data-radix-scroll-area-thumb]]:bg-primary/30"
+                          >
+                            <div className="grid gap-3 pb-1 pr-2 md:grid-cols-2">
+                              {visibleProducts.map((product, index) =>
+                                activeProducts.length > 0 ? (
+                                  <Link
+                                    key={product.slug}
+                                    to="/product/$slug"
+                                    params={{ slug: product.slug }}
+                                    className="group rounded-[1.4rem] border border-border/75 bg-white/75 px-4 py-4 transition-smooth hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-card"
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/60">
+                                          {String(index + 1).padStart(2, "0")}
                                         </div>
-                                      ) : null}
+                                        <div className="mt-2 line-clamp-2 text-sm font-semibold leading-6 text-foreground">
+                                          {product.name}
+                                        </div>
+                                        {product.tags.length > 0 ? (
+                                          <div className="mt-2 text-xs text-muted-foreground">
+                                            {product.tags.slice(0, 2).join(" · ")}
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                      <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-primary transition group-hover:translate-x-1" />
                                     </div>
-                                    <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-primary transition group-hover:translate-x-1" />
+                                  </Link>
+                                ) : (
+                                  <div
+                                    key={`${product.slug}-${product.name}`}
+                                    className="rounded-[1.4rem] border border-border/75 bg-white/70 px-4 py-4"
+                                  >
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/60">
+                                      {String(index + 1).padStart(2, "0")}
+                                    </div>
+                                    <div className="mt-2 text-sm font-semibold leading-6 text-foreground">
+                                      {product.name}
+                                    </div>
                                   </div>
-                                </Link>
-                              ) : (
-                                <div
-                                  key={`${product.slug}-${product.name}`}
-                                  className="rounded-[1.4rem] border border-border/75 bg-white/70 px-4 py-4"
-                                >
-                                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary/60">
-                                    {String(index + 1).padStart(2, "0")}
-                                  </div>
-                                  <div className="mt-2 text-sm font-semibold leading-6 text-foreground">
-                                    {product.name}
-                                  </div>
-                                </div>
-                              )
-                            ))}
-                          </div>
+                                ),
+                              )}
+                            </div>
+                          </ScrollArea>
                         </div>
 
                         <div className="border-l border-border/70 bg-[linear-gradient(180deg,rgba(242,248,244,0.8),rgba(255,255,255,0.92))] p-6">
@@ -423,16 +463,10 @@ export function Navbar() {
         {open && (
           <div className={mobilePanelClassName}>
             <nav className="flex flex-col gap-1">
-              <Link
-                to="/"
-                className={mobileLinkClassName}
-              >
+              <Link to="/" className={mobileLinkClassName}>
                 Home
               </Link>
-              <Link
-                to="/about"
-                className={mobileLinkClassName}
-              >
+              <Link to="/about" className={mobileLinkClassName}>
                 About
               </Link>
 
@@ -496,10 +530,18 @@ export function Navbar() {
                               height={96}
                             />
                             <div className="min-w-0">
-                              <div className={`truncate text-sm font-semibold ${useHeroNavbar ? "text-white" : "text-foreground"}`}>
+                              <div
+                                className={`truncate text-sm font-semibold ${useHeroNavbar ? "text-white" : "text-foreground"}`}
+                              >
                                 {category.title}
                               </div>
-                              <div className={useHeroNavbar ? "text-xs text-white/58" : "text-xs text-muted-foreground"}>
+                              <div
+                                className={
+                                  useHeroNavbar
+                                    ? "text-xs text-white/58"
+                                    : "text-xs text-muted-foreground"
+                                }
+                              >
                                 {category.productCount > 0
                                   ? `${category.productCount} products`
                                   : `${category.items.length} category items`}
@@ -508,7 +550,7 @@ export function Navbar() {
                           </Link>
 
                           <div className="mt-3 space-y-2 pl-1">
-                            {(mobileCategoryProducts.length > 0
+                            {mobileCategoryProducts.length > 0
                               ? mobileCategoryProducts.slice(0, 3).map((product) => (
                                   <Link
                                     key={product.slug}
@@ -526,11 +568,15 @@ export function Navbar() {
                               : category.items.slice(0, 3).map((item) => (
                                   <div
                                     key={item}
-                                    className={useHeroNavbar ? "text-sm text-white/72" : "text-sm text-foreground/75"}
+                                    className={
+                                      useHeroNavbar
+                                        ? "text-sm text-white/72"
+                                        : "text-sm text-foreground/75"
+                                    }
                                   >
                                     {item}
                                   </div>
-                                )))}
+                                ))}
                           </div>
                         </div>
                       );
@@ -540,11 +586,7 @@ export function Navbar() {
               </div>
 
               {links.slice(2).map((l) => (
-                <Link
-                  key={l.to}
-                  to={l.to}
-                  className={mobileLinkClassName}
-                >
+                <Link key={l.to} to={l.to} className={mobileLinkClassName}>
                   {l.label}
                 </Link>
               ))}
