@@ -301,7 +301,7 @@ function ContactHeroVisual() {
             <div className="text-[10px] uppercase tracking-[0.22em] text-white/50">
               Primary Contact
             </div>
-            <div className="mt-2 font-semibold text-white">
+            <div className="mt-2 whitespace-nowrap font-semibold text-white">
               +91 98241 24043
             </div>
           </div>

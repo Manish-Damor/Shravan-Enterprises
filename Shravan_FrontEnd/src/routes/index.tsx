@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
 import heroImg from "@/assets/hero-industrial.jpg";
 import { useQuery } from "@tanstack/react-query";
 import { SectionHeader } from "@/components/site/SectionHeader";
-import { fetchPublicCatalog, getFallbackCatalog } from "@/lib/catalog";
+import { getFallbackCatalog, getPublicCatalogQueryOptions } from "@/lib/catalog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -91,11 +91,7 @@ const testimonials = [
 ];
 
 function Home() {
-  const { data: catalog } = useQuery({
-    queryKey: ["public-catalog"],
-    queryFn: fetchPublicCatalog,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: catalog } = useQuery(getPublicCatalogQueryOptions());
   const activeCatalog = catalog ?? getFallbackCatalog();
   const categories = activeCatalog.categories;
   const featuredCategories = categories.slice(0, 5);

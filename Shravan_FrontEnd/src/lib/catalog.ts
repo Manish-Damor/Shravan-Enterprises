@@ -1,4 +1,5 @@
 import { categories as fallbackCategories, type Category as FallbackCategory } from "@/lib/products-data";
+import type { QueryClient } from "@tanstack/react-query";
 
 export type PublicCategory = {
   id: string | null;
@@ -71,19 +72,44 @@ export type BrochureEnquiryInput = {
   email: string;
 };
 
-let API_BASE_URL = import.meta.env.VITE_API_URL?.trim() ?? import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ?? "";
-// During local development talk directly to the backend API server.
-if (import.meta.env.DEV && !API_BASE_URL) {
-  API_BASE_URL = "http://localhost:8082";
-}
-
 const LOCAL_API_PORT_CANDIDATES = ["8082"] as const;
 
 const fallbackBySlug = new Map(fallbackCategories.map((category) => [category.slug, category]));
 
 function toAbsoluteApiUrl(path: string) {
-  if (!API_BASE_URL) return null;
-  return new URL(path, API_BASE_URL).toString();
+  const apiBaseUrl = getConfiguredApiBaseUrl();
+  if (!apiBaseUrl) return null;
+  return new URL(path, apiBaseUrl).toString();
+}
+
+function readProcessEnv(name: string) {
+  try {
+    if (typeof process !== "undefined" && process.env && typeof process.env[name] === "string") {
+      return process.env[name]?.trim() ?? "";
+    }
+  } catch {}
+
+  return "";
+}
+
+function getConfiguredApiBaseUrl() {
+  const configured =
+    import.meta.env.VITE_API_URL?.trim() ??
+    import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ??
+    readProcessEnv("VITE_API_URL") ??
+    readProcessEnv("VITE_PUBLIC_API_BASE_URL") ??
+    readProcessEnv("API_URL") ??
+    readProcessEnv("PUBLIC_API_URL") ??
+    "";
+
+  if (configured) return configured;
+
+  // During SSR in local development, there is no browser origin or Vite proxy.
+  if (import.meta.env.DEV) {
+    return "http://localhost:8082";
+  }
+
+  return "";
 }
 
 function appendUniqueUrl(urls: string[], value: string | null) {
@@ -328,6 +354,20 @@ export async function fetchPublicProductBySlug(slug: string) {
   } catch {
     return null;
   }
+}
+
+export function getPublicCatalogQueryOptions() {
+  return {
+    queryKey: ["public-catalog"] as const,
+    queryFn: fetchPublicCatalog,
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: true as const,
+    refetchOnWindowFocus: true as const,
+  };
+}
+
+export async function preloadPublicCatalog(queryClient: QueryClient) {
+  await queryClient.ensureQueryData(getPublicCatalogQueryOptions());
 }
 
 export async function submitPublicEnquiry(input: PublicEnquiryInput) {

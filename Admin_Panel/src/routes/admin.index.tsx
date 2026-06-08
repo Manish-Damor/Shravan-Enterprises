@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, BadgeCheck, Boxes, FileText, Inbox, Plus, Sparkles, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, BadgeCheck, Boxes, FileText, Inbox, Plus, Settings2, Sparkles, TrendingUp, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/admin/")({ component: Dashboard });
@@ -58,6 +58,15 @@ function Dashboard() {
     { label: "Total Enquiries", value: data?.enquiries ?? 0, icon: Inbox, tone: "from-cyan-500 to-blue-500" },
     { label: "Draft Products", value: data?.drafts ?? 0, icon: BadgeCheck, tone: "from-amber-500 to-orange-600" },
     { label: "Published Products", value: data?.published ?? 0, icon: TrendingUp, tone: "from-emerald-500 to-lime-600" },
+  ];
+
+  const endpointModules = [
+    { title: "Products", route: "/admin/products", endpoints: ["/api/products", "/api/categories"], icon: Boxes },
+    { title: "Categories", route: "/admin/categories", endpoints: ["/api/categories", "/api/categories/count"], icon: Sparkles },
+    { title: "Enquiries", route: "/admin/enquiries", endpoints: ["/api/enquiries", "/api/enquiries/count"], icon: Inbox },
+    { title: "Brochure Requests", route: "/admin/brochure-enquiries", endpoints: ["/api/brochure-enquiries", "/api/brochure-enquiries/count"], icon: FileText },
+    { title: "Users", route: "/admin/users", endpoints: ["/api/users", "/api/users/:id"], icon: Users },
+    { title: "Content & Settings", route: "/admin/account", endpoints: ["/api/website-settings", "/api/banners", "/api/clients"], icon: Settings2 },
   ];
 
   return (
@@ -174,6 +183,32 @@ function Dashboard() {
             </div>
           </Card>
         </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        {endpointModules.map((module) => (
+          <Card key={module.title} className="rounded-[1.75rem] border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-950">{module.title}</div>
+                <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{module.route}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+                <module.icon className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              {module.endpoints.map((endpoint) => (
+                <div key={endpoint} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+                  {endpoint}
+                </div>
+              ))}
+            </div>
+            <Button asChild variant="outline" className="mt-4 w-full rounded-2xl">
+              <Link to={module.route}>Open module</Link>
+            </Button>
+          </Card>
+        ))}
       </section>
     </div>
   );

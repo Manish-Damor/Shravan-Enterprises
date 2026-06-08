@@ -11,6 +11,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { Layout } from "@/components/site/Layout";
+import { preloadPublicCatalog } from "@/lib/catalog";
 
 function NotFoundComponent() {
   return (
@@ -70,6 +71,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  loader: async ({ context }) => {
+    await preloadPublicCatalog(context.queryClient);
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

@@ -70,10 +70,10 @@ export function AdminShell({ children }: { children?: ReactNode }) {
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#f4f7fb_30%,#eef2f8_100%)] text-foreground">
       <div className="flex min-h-screen">
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-80 flex-col border-r border-slate-200 bg-slate-950 text-slate-100 shadow-2xl transition-transform lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-slate-950 text-slate-100 shadow-2xl transition-transform lg:translate-x-0 xl:w-80",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}>
-          <div className="border-b border-white/10 px-6 py-5">
+          <div className="border-b border-white/10 px-5 py-5 xl:px-6">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-emerald-500 text-white shadow-lg shadow-blue-500/20">
                 <ShieldCheck className="h-5 w-5" />
@@ -152,9 +152,9 @@ export function AdminShell({ children }: { children?: ReactNode }) {
           />
         ) : null}
 
-        <div className="flex min-h-screen flex-1 flex-col lg:pl-80">
+        <div className="flex min-h-screen flex-1 flex-col lg:pl-72 xl:pl-80">
           <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
-            <div className="flex items-center gap-3 px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
               <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>
                 <Menu className="h-4 w-4" />
               </Button>
@@ -163,10 +163,10 @@ export function AdminShell({ children }: { children?: ReactNode }) {
                   <Warehouse className="h-3.5 w-3.5" />
                   {activeItem?.label ?? "Admin"}
                 </div>
-                <div className="truncate text-sm text-slate-600">Manage industrial products, brochures, content, and enquiries in one place.</div>
+                <div className="truncate text-sm text-slate-600">Manage products, users, enquiries, and website content from one simple workspace.</div>
               </div>
 
-              <div className="hidden xl:block w-[360px]">
+              <div className="hidden lg:block w-[300px] xl:w-[340px]">
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
@@ -175,7 +175,7 @@ export function AdminShell({ children }: { children?: ReactNode }) {
                 />
               </div>
 
-              <div className="hidden sm:flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+              <div className="hidden md:flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white">
                   <Layers3 className="h-4 w-4" />
                 </div>
@@ -188,7 +188,7 @@ export function AdminShell({ children }: { children?: ReactNode }) {
           </header>
 
           <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
-            <div className="mx-auto w-full max-w-[1600px]">
+            <div className="mx-auto w-full max-w-[1680px]">
               {children ?? <Outlet />}
             </div>
           </main>

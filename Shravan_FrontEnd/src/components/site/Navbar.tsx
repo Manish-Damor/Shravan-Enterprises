@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, ChevronDown, Menu, Package2, Sparkles, X } from "lucide-react";
-import { fetchPublicCatalog, getFallbackCatalog } from "@/lib/catalog";
+import { getFallbackCatalog, getPublicCatalogQueryOptions } from "@/lib/catalog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BrandLogo } from "./BrandLogo";
 
@@ -64,11 +64,7 @@ export function Navbar() {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
-  const { data: catalog } = useQuery({
-    queryKey: ["public-catalog"],
-    queryFn: fetchPublicCatalog,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: catalog } = useQuery(getPublicCatalogQueryOptions());
 
   const fallbackCatalog = getFallbackCatalog();
   const catalogProducts = catalog?.products ?? fallbackCatalog.products;
@@ -243,7 +239,7 @@ export function Navbar() {
                   <div className="absolute inset-x-0 -top-5 h-5" />
                   <div className="overflow-hidden rounded-[2rem] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,252,249,0.96))] shadow-[0_32px_90px_-30px_rgba(16,81,50,0.38)] backdrop-blur-2xl">
                     <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(16,81,50,0.32),transparent)]" />
-                    <div className="grid h-[460px] grid-cols-[320px_1fr]">
+                    <div className="grid h-[min(600px,calc(100vh-120px))] grid-cols-[320px_1fr]">
                       <div className="relative flex h-full min-h-0 flex-col overflow-hidden border-r border-border/70 bg-[linear-gradient(180deg,rgba(16,81,50,0.04),rgba(16,81,50,0.01))] p-5">
                         <div className="absolute -left-10 top-10 h-36 w-36 rounded-full bg-primary/8 blur-3xl" />
                         <div className="relative">
@@ -264,7 +260,7 @@ export function Navbar() {
                           type="always"
                           className="mt-6 min-h-0 flex-1 pr-1 [&_[data-orientation='vertical']]:w-3 [&_[data-radix-scroll-area-thumb]]:bg-primary/30"
                         >
-                          <div className="space-y-2 pr-2">
+                          <div className="space-y-2 pb-6 pr-2">
                             {categories.map((category) => {
                               const isActive = category.slug === activeCategory.slug;
 
@@ -340,7 +336,7 @@ export function Navbar() {
                             type="always"
                             className="mt-6 min-h-0 flex-1 pr-1 [&_[data-orientation='vertical']]:w-3 [&_[data-radix-scroll-area-thumb]]:bg-primary/30"
                           >
-                            <div className="grid gap-3 pb-1 pr-2 md:grid-cols-2">
+                            <div className="grid gap-3 pb-8 pr-2 md:grid-cols-2">
                               {visibleProducts.map((product, index) =>
                                 activeProducts.length > 0 ? (
                                   <Link

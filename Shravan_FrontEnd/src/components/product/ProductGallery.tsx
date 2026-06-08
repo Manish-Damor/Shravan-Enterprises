@@ -33,14 +33,20 @@ export default function ProductGallery({ images }: { images: string[] }) {
   if (!images || images.length === 0) return null;
 
   return (
-    <div className="bg-white/6 rounded-lg p-3">
-      <div className="w-full h-48 overflow-hidden bg-white/3 rounded-md flex items-center justify-center cursor-zoom-in" onClick={() => openAt(0)}>
+    <div className="rounded-[1.5rem] border border-border bg-card p-4 shadow-card">
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="text-lg font-semibold text-foreground">Product Images</h4>
+        <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          {images.length} image{images.length === 1 ? "" : "s"}
+        </div>
+      </div>
+      <div className="mt-4 flex h-48 w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-xl border border-border bg-[linear-gradient(160deg,_oklch(0.98_0.01_150),_oklch(0.95_0.012_150))]" onClick={() => openAt(0)}>
         <img src={images[0] || undefined} alt="product" className="max-h-44 object-contain" />
       </div>
 
-      <div className="mt-3 flex gap-2 overflow-x-auto">
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
         {images.map((src, i) => (
-          <button key={i} onClick={() => openAt(i)} className="w-20 h-20 p-2 rounded-md bg-white/2 flex items-center justify-center">
+          <button key={i} onClick={() => openAt(i)} className="flex h-20 w-20 items-center justify-center rounded-xl border border-border bg-secondary/35 p-2 transition hover:border-primary/30 hover:bg-secondary/55">
             <img src={src || undefined} className="max-h-16 object-contain" />
           </button>
         ))}

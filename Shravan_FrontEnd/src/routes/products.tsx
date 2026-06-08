@@ -8,7 +8,7 @@ import {
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/site/PageHero";
-import { fetchPublicCatalog, getFallbackCatalog } from "@/lib/catalog";
+import { getFallbackCatalog, getPublicCatalogQueryOptions } from "@/lib/catalog";
 
 export const Route = createFileRoute("/products")({
   head: () => ({
@@ -37,13 +37,7 @@ function Products() {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
-  const { data: catalog } = useQuery({
-    queryKey: ["public-catalog"],
-    queryFn: fetchPublicCatalog,
-    staleTime: 5 * 60 * 1000,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
+  const { data: catalog } = useQuery(getPublicCatalogQueryOptions());
   const categories = catalog?.categories ?? getFallbackCatalog().categories;
 
   if (pathname !== "/products") {

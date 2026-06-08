@@ -55,6 +55,8 @@ const clientHtml = `<!doctype html>
     <title>Shravan Enterprises</title>
     <meta name="description" content="Shravan Enterprises frontend" />
 ${stylesheetHref ? `    <link rel="stylesheet" href="${stylesheetHref}" />` : ""}
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="apple-touch-icon" href="./favicon.png" />
   </head>
   <body>
     <script type="module" src="./${clientEntryScript}"></script>

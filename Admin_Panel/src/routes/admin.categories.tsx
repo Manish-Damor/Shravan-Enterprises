@@ -163,7 +163,8 @@ function CategoriesPage() {
         </div>
 
         <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200">
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[940px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-24">Order</TableHead>
@@ -216,6 +217,7 @@ function CategoriesPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
       </Card>
 

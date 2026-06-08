@@ -95,8 +95,11 @@ export default function InquiryForm({
   }
 
   return (
-    <div className="rounded-lg bg-white/6 p-4">
-      <h4 className="font-semibold">Quick Inquiry</h4>
+    <div className="rounded-[1.5rem] border border-border bg-card p-5 shadow-card">
+      <h4 className="text-lg font-semibold text-foreground">Quick Inquiry</h4>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Share your requirement and our team will respond on phone or email.
+      </p>
       <form
         className="mt-3 space-y-3"
         onSubmit={handleSubmit}
@@ -112,7 +115,7 @@ export default function InquiryForm({
           placeholder="Name"
           aria-invalid={Boolean(errors.customer_name)}
           aria-describedby={errors.customer_name ? "err-name" : undefined}
-          className="w-full rounded p-2"
+          className="w-full rounded-xl border border-border bg-secondary/35 px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
         />
         {errors.customer_name ? (
           <div id="err-name" className="mt-1 text-sm text-rose-500">
@@ -128,7 +131,7 @@ export default function InquiryForm({
           value={company}
           onChange={(event) => setCompany(event.target.value)}
           placeholder="Company"
-          className="w-full rounded p-2"
+          className="w-full rounded-xl border border-border bg-secondary/35 px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
         />
 
         <label htmlFor="inq-phone" className="sr-only">
@@ -141,7 +144,7 @@ export default function InquiryForm({
           placeholder="Phone"
           aria-invalid={Boolean(errors.mobile)}
           aria-describedby={errors.mobile ? "err-phone" : undefined}
-          className="w-full rounded p-2"
+          className="w-full rounded-xl border border-border bg-secondary/35 px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
         />
         {errors.mobile ? (
           <div id="err-phone" className="mt-1 text-sm text-rose-500">
@@ -159,7 +162,7 @@ export default function InquiryForm({
           placeholder="Email (optional)"
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? "err-email" : undefined}
-          className="w-full rounded p-2"
+          className="w-full rounded-xl border border-border bg-secondary/35 px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
         />
         {errors.email ? (
           <div id="err-email" className="mt-1 text-sm text-rose-500">
@@ -177,7 +180,7 @@ export default function InquiryForm({
           placeholder={`Interested in ${product.name}`}
           aria-invalid={Boolean(errors.message)}
           aria-describedby={errors.message ? "err-message" : undefined}
-          className="w-full rounded p-2"
+          className="w-full min-h-28 rounded-xl border border-border bg-secondary/35 px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
         />
         {errors.message ? (
           <div id="err-message" className="mt-1 text-sm text-rose-500">

@@ -288,7 +288,8 @@ function ProductsPage() {
         </div>
 
         <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200">
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[920px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>
@@ -393,6 +394,7 @@ function ProductsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
         </div>
       </Card>
 

@@ -1,15 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin } from "lucide-react";
-import { fetchPublicCatalog, getFallbackCatalog } from "@/lib/catalog";
+import { getFallbackCatalog, getPublicCatalogQueryOptions } from "@/lib/catalog";
 import { BrandLogo } from "./BrandLogo";
 
 export function Footer() {
-  const { data: catalog } = useQuery({
-    queryKey: ["public-catalog"],
-    queryFn: fetchPublicCatalog,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: catalog } = useQuery(getPublicCatalogQueryOptions());
   const activeCatalog = catalog ?? getFallbackCatalog();
   const footerCategories = [...(activeCatalog.categories ?? [])]
     .sort((left, right) => (left.sort_order ?? 0) - (right.sort_order ?? 0))

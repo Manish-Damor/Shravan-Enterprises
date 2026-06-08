@@ -18,23 +18,23 @@ export default function StickyInfoBar({
       initial={{ y: -6, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.35 }}
-      className="sticky top-0 z-40 border-b border-white/6 bg-white/5 backdrop-blur-md"
+      className="sticky top-0 z-40 border-b border-border/70 bg-white/92 shadow-[0_12px_40px_-32px_rgba(15,23,42,0.5)] backdrop-blur-xl"
     >
-      <div className="container mx-auto flex items-center gap-6 px-6 py-3 text-sm text-white">
+      <div className="container mx-auto flex items-center gap-6 px-6 py-3 text-sm text-foreground">
         <div className="flex items-center gap-3">
-          <Tag className="h-4 w-4 text-amber-300" />
+          <Tag className="h-4 w-4 text-amber-500" />
           <span className="font-medium">{product.name}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <strong>Type:</strong>
+        <div className="flex items-center gap-3 text-foreground/85">
+          <strong className="text-foreground">Type:</strong>
           <span>{product.characteristics ?? product.subtitle ?? "-"}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <strong>Category:</strong>
+        <div className="flex items-center gap-3 text-foreground/85">
+          <strong className="text-foreground">Category:</strong>
           <span>{category?.title ?? product.category_title ?? product.category_slug}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <strong>Unit:</strong>
+        <div className="flex items-center gap-3 text-foreground/85">
+          <strong className="text-foreground">Unit:</strong>
           <span>{product.unit_of_measurement ?? "-"}</span>
         </div>
         <div className="ml-auto flex items-center gap-3">
@@ -50,7 +50,7 @@ export default function StickyInfoBar({
           </a>
           <Link
             to="/contact"
-            className="rounded border border-white/10 px-4 py-2 hover:bg-white/6"
+            className="rounded border border-border bg-white px-4 py-2 text-foreground transition hover:bg-secondary"
           >
             Quick Inquiry
           </Link>

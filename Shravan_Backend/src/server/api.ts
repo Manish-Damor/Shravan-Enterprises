@@ -4,6 +4,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { getMongoCollections } from "@/integrations/mongo/client.server";
 import { hashPassword, comparePassword, createAuthToken, verifyAuthToken } from "@/integrations/mongo/auth";
+import { sendEnquiryNotificationEmail } from "@/lib/mail";
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -43,6 +44,10 @@ function serializeDocument<T extends Record<string, unknown>>(document: T & { _i
 function parseBool(value: string | null) {
   if (value === null) return undefined;
   return value === "true" || value === "1";
+}
+
+function isPrivilegedRole(role: unknown) {
+  return ["admin", "super_admin", "product_manager", "content_manager", "sales_manager"].includes(String(role ?? ""));
 }
 
 function buildQuery(collectionName: CollectionName, url: URL) {
@@ -95,7 +100,7 @@ async function requireUser(request: Request) {
 
 async function requireAdmin(request: Request) {
   const user = await requireUser(request);
-  if (user.role !== "admin") throw new Error("Forbidden");
+  if (!isPrivilegedRole(user.role)) throw new Error("Forbidden");
   return user;
 }
 
@@ -113,10 +118,38 @@ function slugifyText(value: string) {
 }
 
 function extractMediaUrl(value: unknown) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith("/") || trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
+      return trimmed;
+    }
+    return null;
+  }
   if (!value || typeof value !== "object") return null;
   const media = value as Record<string, unknown>;
-  const url = media.url;
-  return typeof url === "string" && url.trim() ? url : null;
+  const url = media.url ?? media.value;
+  if (typeof url !== "string") return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith("/") || trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
+    return trimmed;
+  }
+  return null;
+}
+
+function pickFirstMediaUrl(...values: unknown[]) {
+  for (const value of values) {
+    const url = extractMediaUrl(value);
+    if (url) return url;
+  }
+
+  return null;
+}
+
+function extractString(value: unknown) {
+  if (typeof value === "string") return value.trim();
+  return "";
 }
 
 function extractStringArray(value: unknown) {
@@ -142,6 +175,18 @@ function extractStringArray(value: unknown) {
     }
     return "";
   }).filter(Boolean);
+}
+
+function extractText(value: unknown) {
+  if (typeof value === "string") return value.trim();
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => extractString(item))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  return null;
 }
 
 function extractMediaList(value: unknown) {
@@ -198,28 +243,53 @@ async function handlePublicRoutes(request: Request, pathname: string) {
       const relatedProducts = categoryId ? productsByCategoryId.get(categoryId) ?? [] : [];
       const title = String(category.name ?? category.title ?? "Category");
       const slug = String(category.slug ?? slugifyText(title));
-      const image = extractMediaUrl(category.banner_image) ?? extractMediaUrl(category.icon);
+      const image = pickFirstMediaUrl(
+        category.banner_image,
+        category.image,
+        category.banner,
+        category.bannerImage,
+        category.categoryBannerImage,
+        category.icon,
+      );
 
       return {
         id: categoryId,
         slug,
         title,
-        tagline: String(category.short_description ?? category.description ?? ""),
+        tagline: String(
+          category.short_description ??
+          category.shortDescription ??
+          category.longDescription ??
+          category.description ??
+          "",
+        ),
         image,
         items: relatedProducts
           .map((product) => String(product.name ?? product.title ?? ""))
           .filter(Boolean),
         status: category.status ?? "active",
-        sort_order: category.sort_order ?? 0,
+        sort_order: category.sort_order ?? category.sortOrder ?? 0,
       };
     });
 
     const publicProducts = productDocs.map((product) => {
       const category = product.category_id ? categoryById.get(String(product.category_id)) : undefined;
       const title = String(product.name ?? product.title ?? "Product");
-      const image = extractMediaUrl(product.image) ?? extractMediaUrl(product.og_image);
-      const galleryImages = extractMediaList(product.gallery_images);
-      const applicationImages = extractMediaList(product.application_images);
+      const image = pickFirstMediaUrl(
+        product.image,
+        product.imageUrl,
+        product.mainImage,
+        product.mainProductImage,
+        product.primary_image,
+        Array.isArray(product.images) ? product.images[0] : null,
+        product.og_image,
+      );
+      const galleryImages = extractMediaList(product.gallery_images).length > 0
+        ? extractMediaList(product.gallery_images)
+        : extractMediaList(product.images);
+      const applicationImages = extractMediaList(product.application_images).length > 0
+        ? extractMediaList(product.application_images)
+        : extractMediaList(product.applicationRows);
       const files = [
         { key: "brochure_pdf", value: product.brochure_pdf },
         { key: "tds_pdf", value: product.tds_pdf },
@@ -245,26 +315,34 @@ async function handlePublicRoutes(request: Request, pathname: string) {
         name: title,
         subtitle: product.subtitle ?? null,
         category_id: product.category_id ?? null,
-        category_slug: category?.slug ?? null,
-        category_title: category?.name ?? null,
+        category_slug: category?.slug ?? product.category_slug ?? product.categorySlug ?? product.category ?? null,
+        category_title: category?.name ?? category?.title ?? product.category_title ?? product.categoryTitle ?? product.categoryName ?? null,
         featured: Boolean(product.featured),
         image,
         gallery_images: galleryImages,
         application_images: applicationImages,
         files,
-        applications: extractStringArray(product.applications ?? product.application_rows),
-        application_rows: Array.isArray(product.application_rows) ? product.application_rows : [],
-        industries: extractStringArray(product.industries_served),
+        applications: extractStringArray(product.applications ?? product.application_rows ?? product.applicationRows ?? product.application),
+        application_rows: Array.isArray(product.application_rows)
+          ? product.application_rows
+          : Array.isArray(product.applicationRows)
+            ? product.applicationRows
+            : [],
+        industries: extractStringArray(product.industries_served ?? product.industriesServed),
         tags: extractStringArray(product.tags),
-        characteristics: product.characteristics ?? null,
-        unit_of_measurement: product.unit_of_measurement ?? null,
+        characteristics: extractText(product.characteristics),
+        unit_of_measurement: product.unit_of_measurement ?? product.unit ?? product.uom ?? null,
         moq: product.moq ?? null,
-        available_packing_size: product.available_packing_size ?? null,
-        short_description: product.short_description ?? null,
-        detailed_description: product.detailed_description ?? null,
-        key_features: product.key_features ?? null,
-        technical_specifications: product.technical_specifications ?? null,
-        specification_rows: Array.isArray(product.specification_rows) ? product.specification_rows : [],
+        available_packing_size: product.available_packing_size ?? product.packingSize ?? null,
+        short_description: product.short_description ?? product.shortDescription ?? product.shortLine ?? null,
+        detailed_description: product.detailed_description ?? product.detailedDescription ?? product.description ?? null,
+        key_features: extractText(product.key_features ?? product.keyFeatures),
+        technical_specifications: product.technical_specifications ?? product.technicalSummary ?? null,
+        specification_rows: Array.isArray(product.specification_rows)
+          ? product.specification_rows
+          : Array.isArray(product.technicalRows)
+            ? product.technicalRows
+            : [],
         primary_image: product.image ?? null,
         createdAt: product.createdAt ?? null,
         updatedAt: product.updatedAt ?? null,
@@ -390,6 +468,24 @@ async function handlePublicRoutes(request: Request, pathname: string) {
       createdAt: now,
       updatedAt: now,
     });
+
+    try {
+      const sent = await sendEnquiryNotificationEmail({
+        customerName,
+        company,
+        mobile,
+        email,
+        subject,
+        message,
+        productId: body.product_id ?? null,
+        categoryId: body.category_id ?? null,
+      });
+      if (!sent) {
+        console.warn("Enquiry email notification skipped: mail transport is not configured.");
+      }
+    } catch (error) {
+      console.error("Failed to send enquiry notification email", error);
+    }
 
     return jsonResponse({ success: true, id: result.insertedId.toString() }, 201);
   }

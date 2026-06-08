@@ -5,7 +5,7 @@ interface AuthUser {
   id: string;
   email: string | null;
   phone: string | null;
-  role: "admin" | "user";
+  role: "super_admin" | "product_manager" | "content_manager" | "sales_manager" | "admin" | "user";
   created_at: string;
   updated_at: string;
 }
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const userData = await apiFetch<AuthUser>("/api/auth/me");
         setUser(userData);
-        setIsAdmin(userData.role === "admin");
+        setIsAdmin(userData.role !== "user");
       } catch {
         clearAuthToken();
         setUser(null);
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     window.localStorage.setItem("wwk_auth_token", data.token);
     setUser(data.user);
-    setIsAdmin(data.user.role === "admin");
+    setIsAdmin(data.user.role !== "user");
   };
 
   const signUp = async (identifier: string, password: string) => {
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     window.localStorage.setItem("wwk_auth_token", data.token);
     setUser(data.user);
-    setIsAdmin(data.user.role === "admin");
+    setIsAdmin(data.user.role !== "user");
   };
 
   const signOut = () => {
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify(updates),
     });
     setUser(userData);
-    setIsAdmin(userData.role === "admin");
+    setIsAdmin(userData.role !== "user");
   };
 
   return (

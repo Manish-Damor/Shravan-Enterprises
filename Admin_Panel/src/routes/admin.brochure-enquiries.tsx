@@ -67,7 +67,8 @@ function BrochureEnquiriesPage() {
         </div>
 
         <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200">
-          <Table>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[760px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
@@ -98,6 +99,7 @@ function BrochureEnquiriesPage() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
       </Card>
 
