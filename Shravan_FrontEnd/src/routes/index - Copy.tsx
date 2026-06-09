@@ -18,319 +18,23 @@ import { useQuery } from "@tanstack/react-query";
 import { SectionHeader } from "@/components/site/SectionHeader";
 import { getFallbackCatalog, getPublicCatalogQueryOptions } from "@/lib/catalog";
 
-const SITE_URL = "https://shravanenterprises.pavitrasoft.in";
-const SITE_NAME = "Shravan Enterprises";
-
-const SEO_TITLE =
-  "Shravan Enterprises | FRP Raw Materials, Resin, Stone Pro & Industrial Supplier in India";
-
-const SEO_DESCRIPTION =
-  "Shravan Enterprises is an ISO 9001:2015 certified industrial supplier in India offering FRP raw materials, resin and chemicals, fiberglass products, vacuum infusion materials, FRP accessories, stone care systems, marble and granite solutions, packaging materials and industrial consumables.";
-
-const SEO_KEYWORDS = [
-  "Shravan Enterprises",
-  "Shravan Enterprises Vapi",
-  "FRP raw materials supplier",
-  "FRP materials supplier India",
-  "resin and chemicals supplier",
-  "fiberglass supplier India",
-  "vacuum infusion materials",
-  "FRP accessories supplier",
-  "stone Pro products",
-  "marble granite solutions",
-  "industrial consumables supplier",
-  "industrial supplier Gujarat",
-  "industrial supply India",
-  "packaging materials supplier",
-  "process supply solutions",
-].join(", ");
-
-const SEO_IMAGE = new URL(heroImg, SITE_URL).toString();
-const LOGO_URL = `${SITE_URL}/logo.png`;
-
-const PRODUCT_CATEGORIES = [
-  "FRP Raw Materials",
-  "Resin & Chemicals",
-  "Fiberglass Products",
-  "Vacuum Infusion Materials",
-  "FRP Accessories",
-  "Stone Pro Products",
-  "Marble & Granite Solutions",
-  "Industrial Consumables",
-  "Packaging Materials",
-];
-
-const safeJsonLd = (data: unknown) =>
-  JSON.stringify(data).replace(/</g, "\\u003c");
-
-const homeStructuredData = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      "@id": `${SITE_URL}/#organization`,
-      name: SITE_NAME,
-      url: SITE_URL,
-      logo: LOGO_URL,
-      image: SEO_IMAGE,
-      description: SEO_DESCRIPTION,
-      slogan:
-        "Premium FRP, resin, stone pro and industrial supply solutions.",
-      email: "shravanenterprises1312@gmail.com",
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: "Vapi",
-        addressRegion: "Gujarat",
-        addressCountry: "IN",
-      },
-      areaServed: [
-        {
-          "@type": "Country",
-          name: "India",
-        },
-      ],
-      knowsAbout: PRODUCT_CATEGORIES,
-      makesOffer: PRODUCT_CATEGORIES.map((category) => ({
-        "@type": "Offer",
-        itemOffered: {
-          "@type": "Product",
-          name: category,
-        },
-      })),
-    },
-    {
-      "@type": "LocalBusiness",
-      "@id": `${SITE_URL}/#localbusiness`,
-      name: SITE_NAME,
-      url: SITE_URL,
-      image: SEO_IMAGE,
-      priceRange: "₹₹",
-      description: SEO_DESCRIPTION,
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: "Vapi",
-        addressRegion: "Gujarat",
-        addressCountry: "IN",
-      },
-      areaServed: {
-        "@type": "Country",
-        name: "India",
-      },
-    },
-    {
-      "@type": "WebSite",
-      "@id": `${SITE_URL}/#website`,
-      url: SITE_URL,
-      name: SITE_NAME,
-      description: SEO_DESCRIPTION,
-      publisher: {
-        "@id": `${SITE_URL}/#organization`,
-      },
-      inLanguage: "en-IN",
-      potentialAction: {
-        "@type": "SearchAction",
-        target: `${SITE_URL}/products?search={search_term_string}`,
-        "query-input": "required name=search_term_string",
-      },
-    },
-    {
-      "@type": "WebPage",
-      "@id": `${SITE_URL}/#webpage`,
-      url: SITE_URL,
-      name: SEO_TITLE,
-      headline:
-        "Shravan Enterprises - FRP, Resin, Stone Pro and Industrial Supply Solutions",
-      description: SEO_DESCRIPTION,
-      isPartOf: {
-        "@id": `${SITE_URL}/#website`,
-      },
-      about: {
-        "@id": `${SITE_URL}/#organization`,
-      },
-      primaryImageOfPage: {
-        "@type": "ImageObject",
-        url: SEO_IMAGE,
-      },
-      breadcrumb: {
-        "@id": `${SITE_URL}/#breadcrumb`,
-      },
-      inLanguage: "en-IN",
-    },
-    {
-      "@type": "BreadcrumbList",
-      "@id": `${SITE_URL}/#breadcrumb`,
-      itemListElement: [
-        {
-          "@type": "ListItem",
-          position: 1,
-          name: "Home",
-          item: SITE_URL,
-        },
-      ],
-    },
-    {
-      "@type": "ItemList",
-      "@id": `${SITE_URL}/#product-categories`,
-      name: "Shravan Enterprises Product Categories",
-      itemListElement: PRODUCT_CATEGORIES.map((name, index) => ({
-        "@type": "ListItem",
-        position: index + 1,
-        name,
-      })),
-    },
-  ],
-};
-
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/index - Copy")({
   head: () => ({
     meta: [
-      { title: SEO_TITLE },
+      { title: "Shravan Enterprises - Premium FRP, Marble & Granite Solutions" },
       {
         name: "description",
-        content: SEO_DESCRIPTION,
-      },
-      {
-        name: "keywords",
-        content: SEO_KEYWORDS,
-      },
-      {
-        name: "author",
-        content: SITE_NAME,
-      },
-      {
-        name: "publisher",
-        content: SITE_NAME,
-      },
-      {
-        name: "robots",
         content:
-          "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+          "ISO 9001:2015 certified supplier of FRP raw materials, fiberglass, industrial consumables, stone-care systems and process supply solutions.",
       },
-      {
-        name: "googlebot",
-        content:
-          "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
-      },
-      {
-        name: "bingbot",
-        content:
-          "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
-      },
-      {
-        name: "language",
-        content: "English",
-      },
-      {
-        name: "geo.region",
-        content: "IN-GJ",
-      },
-      {
-        name: "geo.placename",
-        content: "Vapi, Gujarat, India",
-      },
-      {
-        name: "theme-color",
-        content: "#0f3d2e",
-      },
-      {
-        name: "application-name",
-        content: SITE_NAME,
-      },
-      {
-        name: "apple-mobile-web-app-title",
-        content: SITE_NAME,
-      },
-
-      {
-        property: "og:type",
-        content: "website",
-      },
-      {
-        property: "og:locale",
-        content: "en_IN",
-      },
-      {
-        property: "og:site_name",
-        content: SITE_NAME,
-      },
-      {
-        property: "og:title",
-        content: SEO_TITLE,
-      },
+      { property: "og:title", content: "Shravan Enterprises - Premium Industrial Solutions" },
       {
         property: "og:description",
-        content: SEO_DESCRIPTION,
-      },
-      {
-        property: "og:url",
-        content: SITE_URL,
-      },
-      {
-        property: "og:image",
-        content: SEO_IMAGE,
-      },
-      {
-        property: "og:image:secure_url",
-        content: SEO_IMAGE,
-      },
-      {
-        property: "og:image:alt",
         content:
-          "Shravan Enterprises industrial supplier for FRP raw materials, resin, fiberglass, stone care and industrial consumables",
-      },
-      {
-        property: "og:image:width",
-        content: "1200",
-      },
-      {
-        property: "og:image:height",
-        content: "630",
-      },
-
-      {
-        name: "twitter:card",
-        content: "summary_large_image",
-      },
-      {
-        name: "twitter:title",
-        content: SEO_TITLE,
-      },
-      {
-        name: "twitter:description",
-        content: SEO_DESCRIPTION,
-      },
-      {
-        name: "twitter:image",
-        content: SEO_IMAGE,
-      },
-      {
-        name: "twitter:image:alt",
-        content:
-          "Shravan Enterprises industrial supply solutions for FRP, resin, stone care and consumables",
+          "Trusted partner for FRP, stone, packaging and industrial process supply requirements.",
       },
     ],
-    links: [
-      {
-        rel: "canonical",
-        href: SITE_URL,
-      },
-      {
-        rel: "alternate",
-        hrefLang: "en-IN",
-        href: SITE_URL,
-      },
-      {
-        rel: "preload",
-        as: "image",
-        href: heroImg,
-      },
-    ],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: safeJsonLd(homeStructuredData),
-      },
-    ],
+    links: [{ rel: "canonical", href: "/" }],
   }),
   component: Home,
 });
@@ -338,33 +42,33 @@ export const Route = createFileRoute("/")({
 const whyUs = [
   {
     icon: Award,
-    title: "Assured Industrial Quality",
-    desc: "Industrial-grade FRP, resin, stone care and process materials backed by careful product selection and dependable quality standards.",
+    title: "Assured Quality",
+    desc: "Industrial-grade materials backed by process discipline and careful product selection.",
   },
   {
     icon: Shield,
-    title: "Trusted Supply Partner",
-    desc: "Preferred by buyers, fabricators, marble units, granite processors and production teams who value consistency and long-term reliability.",
+    title: "Trusted Partnership",
+    desc: "Preferred by buyers, fabricators, and production teams who value consistency over noise.",
   },
   {
     icon: Truck,
-    title: "Reliable Pan-India Supply",
-    desc: "Fast material movement across key regions with responsive support for urgent industrial, FRP and stone-care requirements.",
+    title: "Reliable Supply",
+    desc: "Fast movement across key regions with responsive support on urgent material requirements.",
   },
   {
     icon: Sparkles,
-    title: "Deep Product Range",
-    desc: "From FRP raw materials and resin chemicals to vacuum infusion, stone care, packaging and industrial consumables.",
+    title: "Category Depth",
+    desc: "From FRP and stone care to packaging and process consumables, the range is built for real operations.",
   },
   {
     icon: Factory,
     title: "Industrial Understanding",
-    desc: "Products aligned with shop-floor usage, fabrication needs, finishing work, maintenance realities and production workflows.",
+    desc: "Products aligned to shop-floor usage, maintenance realities, and production workflows.",
   },
   {
     icon: CheckCircle2,
     title: "Professional Service",
-    desc: "Clear communication, cleaner follow-through and purchase support that respects project timelines and bulk material needs.",
+    desc: "Clear communication, cleaner follow-through, and support that respects purchasing timelines.",
   },
 ];
 
@@ -372,17 +76,17 @@ const testimonials = [
   {
     name: "Krishna Global Marbles Stone LLP",
     company: "",
-    text: "Shravan Enterprises has been a reliable supplier for our marble and stone material requirements. Their product quality, timely response, and professional service make them a trusted business partner.",
+    text: "“Shravan Enterprises has been a reliable supplier for our marble and stone material requirements. Their product quality, timely response, and professional service make them a trusted business partner.”",
   },
-  {
+  {  
     name: "Center Stone Pvt Ltd",
     company: "",
-    text: "Shravan Enterprises is a dependable partner for our material and finishing product needs. Their service response and product range are both highly satisfactory.",
+    text: "“Shravan Enterprises is a dependable partner for our material and finishing product needs. Their service response and product range are both highly satisfactory.”",
   },
   {
     name: "Millennium Marble",
     company: "",
-    text: "Shravan Enterprises provides quality products with a good understanding of stone and marble industry needs. Their reliable service and support make them a preferred supplier.",
+    text: "“Shravan Enterprises provides quality products with a good understanding of stone and marble industry needs. Their reliable service and support make them a preferred supplier.”",
   },
 ];
 
@@ -418,7 +122,7 @@ function Home() {
         <div className="absolute inset-0">
           <img
             src={heroImg}
-            alt="Shravan Enterprises premium industrial materials including FRP raw materials, resin, fiberglass and stone care products"
+            alt="Premium industrial materials"
             className="h-full w-full object-cover opacity-20 mix-blend-screen"
             width={1920}
             height={1280}
@@ -446,41 +150,34 @@ function Home() {
             >
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] backdrop-blur-sm">
                 <BadgeCheck className="h-3.5 w-3.5 text-emerald-300" />
-                ISO 9001:2015 Certified Industrial Supply Partner
+                ISO 9001:2015 Certified Supply Partner
               </div>
-              <h1 className="mt-7 max-w-6xl text-5xl font-bold leading-[1.03] tracking-tight md:text-7xl xl:text-8xl">
-                FRP, Resin, Stone Pro & Industrial Materials Supplier.
+              <h1 className="mt-7 max-w-[11ch] text-5xl font-bold leading-[0.94] md:max-w-[12ch] md:text-7xl xl:text-8xl">
+                Industrial materials with a cleaner premium standard.
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/78 md:text-xl">
-                Shravan Enterprises is a trusted industrial supplier in India for
-                FRP raw materials, resin and chemicals, fiberglass products,
-                stone-care systems, vacuum-process materials, FRP accessories,
-                packaging products and allied industrial consumables with dependable
-                quality and responsive service.
+                Shravan Enterprises delivers FRP raw materials, industrial consumables,
+                stone-care systems, vacuum-process products, and allied supply solutions
+                with sharper quality control and a more dependable service experience.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                {[
-                  "FRP Raw Materials",
-                  "Resin & Chemicals",
-                  "Stone Care Products",
-                  "Vacuum Infusion",
-                  "Industrial Consumables",
-                ].map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm text-white/84"
-                  >
-                    {item}
-                  </span>
-                ))}
+                {["FRP Materials", "Stone Care", "Vacuum Process", "Industrial Supply"].map(
+                  (item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm text-white/84"
+                    >
+                      {item}
+                    </span>
+                  ),
+                )}
               </div>
 
               <div className="mt-10 flex flex-wrap gap-4">
                 <Link
                   to="/products"
                   className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 font-semibold text-primary shadow-elegant transition hover:scale-[1.02]"
-                  aria-label="Explore Shravan Enterprises product range"
                 >
                   Explore Product Range
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
@@ -488,7 +185,6 @@ function Home() {
                 <Link
                   to="/brochure"
                   className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/8 px-7 py-4 font-semibold text-white backdrop-blur-sm transition hover:bg-white/14"
-                  aria-label="Download Shravan Enterprises brochure"
                 >
                   Download Brochure
                 </Link>
@@ -519,10 +215,10 @@ function Home() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <div className="text-[10px] uppercase tracking-[0.24em] text-white/50">
-                        Featured product category
+                        Featured category slider
                       </div>
                       <div className="mt-2 text-2xl font-bold text-white">
-                        {currentCategory?.title ?? "Premium Industrial Solutions"}
+                        {currentCategory?.title ?? "Premium Solutions"}
                       </div>
                     </div>
                     <div className="rounded-full border border-white/12 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/72">
@@ -533,7 +229,7 @@ function Home() {
                   <div className="mt-5 overflow-hidden rounded-[1.6rem] border border-white/10">
                     <img
                       src={currentCategory?.image || heroImg}
-                      alt={`${currentCategory?.title ?? "Industrial category"} supplied by Shravan Enterprises`}
+                      alt={currentCategory?.title ?? "Category"}
                       className="h-72 w-full object-cover"
                       loading="lazy"
                     />
@@ -543,7 +239,7 @@ function Home() {
                     <div>
                       <p className="text-sm leading-7 text-white/74">
                         {currentCategory?.tagline ??
-                          "A curated industrial category built for FRP, resin, stone care, process supply and cleaner buying decisions."}
+                          "A curated category built for industrial performance and cleaner buying decisions."}
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {(currentCategory?.items ?? []).slice(0, 3).map((item) => (
@@ -561,7 +257,6 @@ function Home() {
                         to="/products/$slug"
                         params={{ slug: currentCategory.slug }}
                         className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-primary transition hover:scale-[1.02]"
-                        aria-label={`View ${currentCategory.title} products`}
                       >
                         View category
                         <ArrowRight className="h-4 w-4" />
@@ -584,7 +279,6 @@ function Home() {
                             ? "border-white/15 bg-white text-primary shadow-elegant"
                             : "border-white/10 bg-white/8 text-white hover:bg-white/12"
                         }`}
-                        aria-label={`Show ${category.title} category`}
                       >
                         <div className="text-[10px] uppercase tracking-[0.22em] opacity-60">
                           {String(index + 1).padStart(2, "0")}
@@ -612,23 +306,21 @@ function Home() {
               transition={{ duration: 0.75 }}
             >
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                About Shravan Enterprises
+                About Shravan
               </div>
               <h2 className="mt-5 text-4xl font-bold leading-tight text-foreground md:text-5xl">
-                A modern industrial supplier for FRP, resin, stone care and process materials.
+                A modern industrial supplier with a more polished client experience.
               </h2>
               <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                Shravan Enterprises supplies materials that support day-to-day
-                production, reinforcement, finishing, protection, vacuum processing,
-                packaging and industrial maintenance needs across multiple sectors.
-                Our focus is simple: better material selection, better service
-                response, better quality control and stronger long-term business trust.
+                We supply materials that support day-to-day production, finishing,
+                reinforcement, protection, and maintenance needs across multiple industrial environments.
+                The focus is simple: better quality decisions, better service behavior, and better long-term trust.
               </p>
               <div className="mt-8 space-y-4">
                 {[
-                  "Premium category curation for FRP raw materials, resin, stone care and industrial consumables",
-                  "Faster movement from enquiry to requirement matching for buyers and production teams",
-                  "Industrial understanding across FRP fabrication, marble, granite, process and packaging needs",
+                  "Premium category curation instead of random listing",
+                  "Faster movement from enquiry to requirement matching",
+                  "Industrial understanding across FRP, stone, process and packaging needs",
                 ].map((item) => (
                   <div key={item} className="flex items-start gap-3">
                     <CheckCircle2 className="mt-1 h-5 w-5 text-primary" />
@@ -639,7 +331,6 @@ function Home() {
               <Link
                 to="/about"
                 className="mt-9 inline-flex items-center gap-2 font-semibold text-primary transition hover:gap-3"
-                aria-label="Learn more about Shravan Enterprises"
               >
                 Discover our story
                 <ArrowRight className="h-4 w-4" />
@@ -657,7 +348,7 @@ function Home() {
               <div className="relative overflow-hidden rounded-[2.4rem] border border-border bg-card shadow-elegant">
                 <img
                   src={heroImg}
-                  alt="Shravan Enterprises industrial supply showcase for FRP materials resin chemicals and stone care products"
+                  alt="Industrial showcase"
                   className="h-[520px] w-full object-cover"
                   loading="lazy"
                   width={1920}
@@ -678,8 +369,8 @@ function Home() {
         <div className="container mx-auto px-6">
           <SectionHeader
             eyebrow="Product Range"
-            title="Category-led industrial supply for faster buying decisions."
-            description="Explore FRP raw materials, resin and chemicals, vacuum infusion products, fiberglass materials, FRP accessories, stone care systems, packaging solutions and industrial consumables from Shravan Enterprises."
+            title="A sharper category-led experience."
+            description="Designed to help buyers move quickly from category understanding to product-level action."
           />
 
           <div className="mt-16 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -695,12 +386,11 @@ function Home() {
                   to="/products/$slug"
                   params={{ slug: category.slug }}
                   className="group flex h-full flex-col overflow-hidden rounded-[2rem] border border-border bg-card shadow-card transition-smooth hover:-translate-y-1 hover:border-primary/30 hover:shadow-elegant"
-                  aria-label={`Explore ${category.title} products from Shravan Enterprises`}
                 >
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <img
                       src={category.image || undefined}
-                      alt={`${category.title} category from Shravan Enterprises industrial product range`}
+                      alt={category.title}
                       className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                       loading="lazy"
                       width={1280}
@@ -743,9 +433,8 @@ function Home() {
       <section className="relative py-24 md:py-28">
         <div className="container mx-auto px-6">
           <SectionHeader
-            eyebrow="Why Choose Shravan Enterprises"
-            title="Professional industrial supply support, not just product availability."
-            description="We help buyers source reliable FRP materials, resin chemicals, stone-care products, vacuum-process materials and industrial consumables with better clarity, consistency and service."
+            eyebrow="Why Choose Us"
+            title="Professional supply support, not just product availability."
           />
           <div className="mt-16 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {whyUs.map((item, index) => (
@@ -770,11 +459,7 @@ function Home() {
 
       <section className="relative bg-secondary/30 py-24 md:py-28">
         <div className="container mx-auto px-6">
-          <SectionHeader
-            eyebrow="Client Voice"
-            title="Confidence built through repeat business."
-            description="Shravan Enterprises is trusted by marble, stone, industrial and fabrication businesses for product quality, timely response and reliable material support."
-          />
+          <SectionHeader eyebrow="Client Voice" title="Confidence built through repeat business." />
           <div className="mt-16 grid gap-6 md:grid-cols-3">
             {testimonials.map((testimonial, index) => (
               <motion.div
@@ -787,9 +472,9 @@ function Home() {
               >
                 <Quote className="h-8 w-8 text-primary/28" />
                 <p className="mt-5 text-base leading-8 text-foreground/90">
-                  “{testimonial.text}”
+                  "{testimonial.text}"
                 </p>
-                <div className="mt-6 flex gap-1" aria-label="5 star client rating">
+                <div className="mt-6 flex gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star key={i} className="h-4 w-4 fill-accent text-accent" />
                   ))}
@@ -816,18 +501,16 @@ function Home() {
                 Premium Industrial Supply
               </div>
               <h2 className="mt-6 text-4xl font-bold leading-tight md:text-5xl">
-                Source FRP, resin, stone care and industrial materials with more confidence.
+                Ready to source with more confidence and less friction?
               </h2>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-white/80">
-                Talk to Shravan Enterprises about your material requirements,
-                target categories, project timelines and bulk supply needs. We help
-                you move from enquiry to the right product path faster.
+                Talk to us about your material requirements, target categories,
+                project timelines, and bulk supply needs. We’ll help you move from enquiry to the right product path faster.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
                   to="/contact"
                   className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 font-semibold text-primary shadow-elegant transition hover:scale-[1.02]"
-                  aria-label="Request a quote from Shravan Enterprises"
                 >
                   Request a Quote
                   <ArrowRight className="h-4 w-4" />
@@ -835,7 +518,6 @@ function Home() {
                 <Link
                   to="/brochure"
                   className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-7 py-4 font-semibold text-white transition hover:bg-white/16"
-                  aria-label="Download Shravan Enterprises product brochure"
                 >
                   Download Brochure
                 </Link>

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as IndustriesRouteImport } from './routes/industries'
+import { Route as IndexCopyRouteImport } from './routes/index - Copy'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CertificationsRouteImport } from './routes/certifications'
@@ -28,6 +29,11 @@ const ProductsRoute = ProductsRouteImport.update({
 const IndustriesRoute = IndustriesRouteImport.update({
   id: '/industries',
   path: '/industries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexCopyRoute = IndexCopyRouteImport.update({
+  id: '/index - Copy',
+  path: '/index - Copy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GalleryRoute = GalleryRouteImport.update({
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
+  '/index - Copy': typeof IndexCopyRoute
   '/industries': typeof IndustriesRoute
   '/products': typeof ProductsRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
+  '/index - Copy': typeof IndexCopyRoute
   '/industries': typeof IndustriesRoute
   '/products': typeof ProductsRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
+  '/index - Copy': typeof IndexCopyRoute
   '/industries': typeof IndustriesRoute
   '/products': typeof ProductsRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/certifications'
     | '/contact'
     | '/gallery'
+    | '/index - Copy'
     | '/industries'
     | '/products'
     | '/product/$slug'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/certifications'
     | '/contact'
     | '/gallery'
+    | '/index - Copy'
     | '/industries'
     | '/products'
     | '/product/$slug'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/certifications'
     | '/contact'
     | '/gallery'
+    | '/index - Copy'
     | '/industries'
     | '/products'
     | '/product/$slug'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   CertificationsRoute: typeof CertificationsRoute
   ContactRoute: typeof ContactRoute
   GalleryRoute: typeof GalleryRoute
+  IndexCopyRoute: typeof IndexCopyRoute
   IndustriesRoute: typeof IndustriesRoute
   ProductsRoute: typeof ProductsRouteWithChildren
   ProductSlugRoute: typeof ProductSlugRoute
@@ -173,6 +186,13 @@ declare module '@tanstack/react-router' {
       path: '/industries'
       fullPath: '/industries'
       preLoaderRoute: typeof IndustriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/index - Copy': {
+      id: '/index - Copy'
+      path: '/index - Copy'
+      fullPath: '/index - Copy'
+      preLoaderRoute: typeof IndexCopyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gallery': {
@@ -253,6 +273,7 @@ const rootRouteChildren: RootRouteChildren = {
   CertificationsRoute: CertificationsRoute,
   ContactRoute: ContactRoute,
   GalleryRoute: GalleryRoute,
+  IndexCopyRoute: IndexCopyRoute,
   IndustriesRoute: IndustriesRoute,
   ProductsRoute: ProductsRouteWithChildren,
   ProductSlugRoute: ProductSlugRoute,
