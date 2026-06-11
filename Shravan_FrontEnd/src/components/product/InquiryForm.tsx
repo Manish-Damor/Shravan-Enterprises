@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { submitPublicEnquiry } from "@/lib/catalog";
@@ -10,13 +10,19 @@ export default function InquiryForm({
   product: NormalizedProduct;
 }) {
   const queryClient = useQueryClient();
+  const defaultMessage = `Interested in ${product.name}`;
 
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState(`Interested in ${product.name}`);
+  const [message, setMessage] = useState(defaultMessage);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setMessage(defaultMessage);
+    setErrors({});
+  }, [defaultMessage]);
 
   const mutation = useMutation({
     mutationFn: (input: Parameters<typeof submitPublicEnquiry>[0]) =>
@@ -28,7 +34,7 @@ export default function InquiryForm({
       setCompany("");
       setPhone("");
       setEmail("");
-      setMessage(`Interested in ${product.name}`);
+      setMessage(defaultMessage);
       setErrors({});
     },
     onError: (error: Error & { payload?: { errors?: Record<string, string> } }) => {
@@ -177,7 +183,7 @@ export default function InquiryForm({
           id="inq-message"
           value={message}
           onChange={(event) => setMessage(event.target.value)}
-          placeholder={`Interested in ${product.name}`}
+          placeholder={defaultMessage}
           aria-invalid={Boolean(errors.message)}
           aria-describedby={errors.message ? "err-message" : undefined}
           className="w-full min-h-28 rounded-xl border border-border bg-secondary/35 px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"

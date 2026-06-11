@@ -25,7 +25,7 @@ const SEO_TITLE =
   "Shravan Enterprises | FRP Raw Materials, Resin, Stone Pro & Industrial Supplier in India";
 
 const SEO_DESCRIPTION =
-  "Shravan Enterprises is an ISO 9001:2015 certified industrial supplier in India offering FRP raw materials, resin and chemicals, fiberglass products, vacuum infusion materials, FRP accessories, stone care systems, marble and granite solutions, packaging materials and industrial consumables.";
+  "Shravan Enterprises is an ISO 9001:2015 certified industrial supplier in India offering FRP raw materials, resin and chemicals, fiberglass products, vacuum infusion materials, FRP accessories, stone pro systems, marble and granite solutions, packaging materials and industrial consumables.";
 
 const SEO_KEYWORDS = [
   "Shravan Enterprises",
@@ -276,7 +276,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:image:alt",
         content:
-          "Shravan Enterprises industrial supplier for FRP raw materials, resin, fiberglass, stone care and industrial consumables",
+          "Shravan Enterprises industrial supplier for FRP raw materials, resin, fiberglass, stone pro and industrial consumables",
       },
       {
         property: "og:image:width",
@@ -306,7 +306,7 @@ export const Route = createFileRoute("/")({
       {
         name: "twitter:image:alt",
         content:
-          "Shravan Enterprises industrial supply solutions for FRP, resin, stone care and consumables",
+          "Shravan Enterprises industrial supply solutions for FRP, resin, stone pro and consumables",
       },
     ],
     links: [
@@ -339,7 +339,7 @@ const whyUs = [
   {
     icon: Award,
     title: "Assured Industrial Quality",
-    desc: "Industrial-grade FRP, resin, stone care and process materials backed by careful product selection and dependable quality standards.",
+    desc: "Industrial-grade FRP, resin, stone pro and process materials backed by careful product selection and dependable quality standards.",
   },
   {
     icon: Shield,
@@ -349,12 +349,12 @@ const whyUs = [
   {
     icon: Truck,
     title: "Reliable Pan-India Supply",
-    desc: "Fast material movement across key regions with responsive support for urgent industrial, FRP and stone-care requirements.",
+    desc: "Fast material movement across key regions with responsive support for urgent industrial, FRP and stone pro requirements.",
   },
   {
     icon: Sparkles,
     title: "Deep Product Range",
-    desc: "From FRP raw materials and resin chemicals to vacuum infusion, stone care, packaging and industrial consumables.",
+    desc: "From FRP raw materials and resin chemicals to vacuum infusion, stone pro, packaging and industrial consumables.",
   },
   {
     icon: Factory,
@@ -372,7 +372,7 @@ const testimonials = [
   {
     name: "Krishna Global Marbles Stone LLP",
     company: "",
-    text: "Shravan Enterprises has been a reliable supplier for our marble and stone material requirements. Their product quality, timely response, and professional service make them a trusted business partner.",
+    text: "Shravan Enterprises has been a reliable supplier for our marble and stone pro material requirements. Their product quality, timely response, and professional service make them a trusted business partner.",
   },
   {
     name: "Center Stone Pvt Ltd",
@@ -382,7 +382,7 @@ const testimonials = [
   {
     name: "Millennium Marble",
     company: "",
-    text: "Shravan Enterprises provides quality products with a good understanding of stone and marble industry needs. Their reliable service and support make them a preferred supplier.",
+    text: "Shravan Enterprises provides quality products with a good understanding of stone pro and marble industry needs. Their reliable service and support make them a preferred supplier.",
   },
 ];
 
@@ -418,7 +418,7 @@ function Home() {
         <div className="absolute inset-0">
           <img
             src={heroImg}
-            alt="Shravan Enterprises premium industrial materials including FRP raw materials, resin, fiberglass and stone care products"
+            alt="Shravan Enterprises premium industrial materials including FRP raw materials, resin, fiberglass and stone pro products"
             className="h-full w-full object-cover opacity-20 mix-blend-screen"
             width={1920}
             height={1280}
@@ -463,7 +463,7 @@ function Home() {
                 {[
                   "FRP Raw Materials",
                   "Resin & Chemicals",
-                  "Stone Care Products",
+                  "stone pro Products",
                   "Vacuum Infusion",
                   "Industrial Consumables",
                 ].map((item) => (
@@ -543,7 +543,7 @@ function Home() {
                     <div>
                       <p className="text-sm leading-7 text-white/74">
                         {currentCategory?.tagline ??
-                          "A curated industrial category built for FRP, resin, stone care, process supply and cleaner buying decisions."}
+                          "A curated industrial category built for FRP, resin, stone pro, process supply and cleaner buying decisions."}
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {(currentCategory?.items ?? []).slice(0, 3).map((item) => (
@@ -615,7 +615,7 @@ function Home() {
                 About Shravan Enterprises
               </div>
               <h2 className="mt-5 text-4xl font-bold leading-tight text-foreground md:text-5xl">
-                A modern industrial supplier for FRP, resin, stone care and process materials.
+                A modern industrial supplier for FRP, resin, stone Pro and process materials.
               </h2>
               <p className="mt-5 text-lg leading-8 text-muted-foreground">
                 Shravan Enterprises supplies materials that support day-to-day
@@ -626,7 +626,7 @@ function Home() {
               </p>
               <div className="mt-8 space-y-4">
                 {[
-                  "Premium category curation for FRP raw materials, resin, stone care and industrial consumables",
+                  "Premium category curation for FRP raw materials, resin, stone pro and industrial consumables",
                   "Faster movement from enquiry to requirement matching for buyers and production teams",
                   "Industrial understanding across FRP fabrication, marble, granite, process and packaging needs",
                 ].map((item) => (
@@ -657,7 +657,7 @@ function Home() {
               <div className="relative overflow-hidden rounded-[2.4rem] border border-border bg-card shadow-elegant">
                 <img
                   src={heroImg}
-                  alt="Shravan Enterprises industrial supply showcase for FRP materials resin chemicals and stone care products"
+                  alt="Shravan Enterprises industrial supply showcase for FRP materials resin chemicals and stone pro products"
                   className="h-[520px] w-full object-cover"
                   loading="lazy"
                   width={1920}
@@ -679,7 +679,7 @@ function Home() {
           <SectionHeader
             eyebrow="Product Range"
             title="Category-led industrial supply for faster buying decisions."
-            description="Explore FRP raw materials, resin and chemicals, vacuum infusion products, fiberglass materials, FRP accessories, stone care systems, packaging solutions and industrial consumables from Shravan Enterprises."
+            description="Explore FRP raw materials, resin and chemicals, vacuum infusion products, fiberglass materials, FRP accessories, stone pro systems, packaging solutions and industrial consumables from Shravan Enterprises."
           />
 
           <div className="mt-16 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -773,7 +773,7 @@ function Home() {
           <SectionHeader
             eyebrow="Client Voice"
             title="Confidence built through repeat business."
-            description="Shravan Enterprises is trusted by marble, stone, industrial and fabrication businesses for product quality, timely response and reliable material support."
+            description="Shravan Enterprises is trusted by marble, stone pro, industrial and fabrication businesses for product quality, timely response and reliable material support."
           />
           <div className="mt-16 grid gap-6 md:grid-cols-3">
             {testimonials.map((testimonial, index) => (
@@ -816,7 +816,7 @@ function Home() {
                 Premium Industrial Supply
               </div>
               <h2 className="mt-6 text-4xl font-bold leading-tight md:text-5xl">
-                Source FRP, resin, stone care and industrial materials with more confidence.
+                Source FRP, resin, stone pro and industrial materials with more confidence.
               </h2>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-white/80">
                 Talk to Shravan Enterprises about your material requirements,

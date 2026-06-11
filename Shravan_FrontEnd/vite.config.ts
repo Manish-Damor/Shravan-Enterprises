@@ -11,6 +11,12 @@ export default defineConfig({
     server: {
       port: 8094,
       strictPort: true,
+      allowedHosts: [
+        ".ngrok-free.dev",
+        ".trycloudflare.com",
+        "localhost",
+        "127.0.0.1"
+      ],
       proxy: {
         "/api": "http://localhost:8082",
       },
