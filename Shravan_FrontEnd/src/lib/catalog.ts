@@ -148,6 +148,20 @@ function fallbackCategoryImage(slug: string) {
   return fallbackBySlug.get(slug)?.image ?? "";
 }
 
+function readMediaUrl(value: unknown) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const url = typeof record.url === "string" ? record.url.trim() : "";
+  if (url) return url;
+  const fallback = typeof record.value === "string" ? record.value.trim() : "";
+  return fallback || null;
+}
+
 function fallbackCatalog(): PublicCatalog {
   return {
     categories: fallbackCategories.map((category) => ({
@@ -212,9 +226,11 @@ function normalizeProduct(value: unknown): PublicProduct | null {
     category_slug: product.category_slug ? String(product.category_slug) : null,
     category_title: product.category_title ? String(product.category_title) : null,
     featured: Boolean(product.featured),
-    image: product.image ? String(product.image) : null,
+    image: readMediaUrl(product.image) ?? (product.image ? String(product.image) : null),
     gallery_images: Array.isArray(product.gallery_images)
-      ? product.gallery_images.map((item) => String(item)).filter(Boolean)
+      ? product.gallery_images
+          .map((item) => readMediaUrl(item) ?? (typeof item === "string" ? item.trim() : ""))
+          .filter(Boolean)
       : [],
     files: Array.isArray(product.files)
       ? product.files

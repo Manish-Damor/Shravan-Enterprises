@@ -60,7 +60,9 @@ function buildQuery(collectionName: CollectionName, url: URL) {
 
   if (collectionName === "categories") {
     const visible = parseBool(url.searchParams.get("visible"));
-    if (visible !== undefined) query.is_visible = visible;
+    if (visible !== undefined) {
+      query.status = visible ? { $ne: "inactive" } : "inactive";
+    }
     const parentId = url.searchParams.get("parent_id");
     if (parentId) query.parent_id = parentId;
   }
@@ -206,143 +208,565 @@ function extractMediaList(value: unknown) {
     .filter((item): item is { url: string; name?: string | null; type?: string | null } => item !== null);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function firstNonEmptyString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) return trimmed;
+      continue;
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+
+    if (value instanceof ObjectId) {
+      return value.toString();
+    }
+
+    if (isRecord(value)) {
+      if (typeof value.$oid === "string" && value.$oid.trim()) return value.$oid.trim();
+      if (typeof value.id === "string" && value.id.trim()) return value.id.trim();
+      if (typeof value._id === "string" && value._id.trim()) return value._id.trim();
+      if (value._id instanceof ObjectId) return value._id.toString();
+      const maybeHex = value as { toHexString?: () => string };
+      if (typeof maybeHex.toHexString === "function") {
+        const hex = maybeHex.toHexString();
+        if (hex.trim()) return hex.trim();
+      }
+    }
+  }
+
+  return null;
+}
+
+function normalizeNumber(value: unknown, fallback = 0) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function inferMediaType(url: string, explicitType: unknown, kind: "image" | "file") {
+  const explicit = firstNonEmptyString(explicitType);
+  if (explicit) return explicit;
+
+  const dataUrlMatch = url.match(/^data:([^;,]+)[;,]/i);
+  if (dataUrlMatch?.[1]) return dataUrlMatch[1];
+
+  const lower = url.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".gif")) return "image/gif";
+  if (lower.endsWith(".svg")) return "image/svg+xml";
+  if (lower.endsWith(".avif")) return "image/avif";
+  if (lower.endsWith(".pdf")) return "application/pdf";
+
+  return kind === "image" ? "image/*" : "application/octet-stream";
+}
+
+function mediaNameFromUrl(url: string, fallback: string) {
+  try {
+    const pathname = new URL(url, "http://local.invalid").pathname;
+    const name = pathname.split("/").pop()?.trim();
+    return name || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeMediaValue(value: unknown, kind: "image" | "file") {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return {
+      name: mediaNameFromUrl(trimmed, kind === "image" ? "image" : "file"),
+      url: trimmed,
+      type: inferMediaType(trimmed, null, kind),
+    };
+  }
+
+  if (!isRecord(value)) return null;
+
+  const url =
+    firstNonEmptyString(value.url, value.value, value.src, value.path) ??
+    (typeof value.dataBase64 === "string" && value.dataBase64.trim()
+      ? `data:${inferMediaType("", value.type ?? value.mimeType ?? value.contentType, kind)};base64,${value.dataBase64.trim()}`
+      : null);
+  if (!url) return null;
+
+  const type = inferMediaType(url, value.type ?? value.mimeType ?? value.contentType, kind);
+  return {
+    name:
+      firstNonEmptyString(value.name, value.filename, value.originalFilename, value.title) ??
+      mediaNameFromUrl(url, kind === "image" ? "image" : "file"),
+    url,
+    type,
+  };
+}
+
+function normalizeMediaArray(value: unknown, kind: "image" | "file") {
+  if (!Array.isArray(value)) return [] as Array<{ name: string; url: string; type: string }>;
+  return value
+    .map((item) => normalizeMediaValue(item, kind))
+    .filter((item): item is { name: string; url: string; type: string } => item !== null);
+}
+
+function mergeUniqueMedia(
+  items: Array<{ name: string; url: string; type: string } | null | undefined>,
+) {
+  const seen = new Set<string>();
+  const merged: Array<{ name: string; url: string; type: string }> = [];
+
+  for (const item of items) {
+    if (!item?.url) continue;
+    if (seen.has(item.url)) continue;
+    seen.add(item.url);
+    merged.push(item);
+  }
+
+  return merged;
+}
+
+function normalizeFileEntries(value: unknown) {
+  if (!Array.isArray(value)) return [] as Array<{ key: string; name: string; url: string; type: string }>;
+  return value
+    .map((item, index) => {
+      const media = normalizeMediaValue(item, "file");
+      if (!media) return null;
+      const key = isRecord(item)
+        ? firstNonEmptyString(item.key, item.kind, item.label, item.name)
+        : null;
+      return {
+        key: key ?? `file_${index + 1}`,
+        ...media,
+      };
+    })
+    .filter((item): item is { key: string; name: string; url: string; type: string } => item !== null);
+}
+
+function normalizeRepeatableRows(value: unknown, fallbackKey = "value") {
+  if (!Array.isArray(value)) return [] as Array<Record<string, string>>;
+  return value
+    .map((item) => {
+      if (typeof item === "string") {
+        const trimmed = item.trim();
+        return trimmed ? { [fallbackKey]: trimmed } : null;
+      }
+
+      if (!isRecord(item)) return null;
+
+      const row: Record<string, string> = {};
+      for (const [key, fieldValue] of Object.entries(item)) {
+        if (typeof fieldValue === "string") {
+          row[key] = fieldValue;
+          continue;
+        }
+
+        if (typeof fieldValue === "number" && Number.isFinite(fieldValue)) {
+          row[key] = String(fieldValue);
+          continue;
+        }
+
+        const nested = firstNonEmptyString(fieldValue);
+        if (nested) row[key] = nested;
+      }
+
+      return Object.keys(row).length > 0 ? row : null;
+    })
+    .filter((item): item is Record<string, string> => item !== null);
+}
+
+function normalizeCategoryStatus(value: unknown, visible?: unknown) {
+  const status = firstNonEmptyString(value)?.toLowerCase();
+  if (status === "inactive" || status === "hidden" || status === "draft") return "inactive";
+  if (status === "active" || status === "published" || status === "visible" || status === "live") return "active";
+
+  if (typeof visible === "boolean") return visible ? "active" : "inactive";
+  if (typeof visible === "string") {
+    const parsed = parseBool(visible);
+    if (parsed !== undefined) return parsed ? "active" : "inactive";
+  }
+
+  return "active";
+}
+
+function normalizeProductStatus(value: unknown) {
+  const status = firstNonEmptyString(value)?.toLowerCase();
+  if (status === "draft" || status === "inactive" || status === "hidden") return "draft";
+  if (status === "published" || status === "active" || status === "live" || status === "visible") return "published";
+  return "published";
+}
+
+type CategoryLookup = {
+  byId: Map<string, Record<string, unknown>>;
+  bySlug: Map<string, Record<string, unknown>>;
+  byName: Map<string, Record<string, unknown>>;
+};
+
+function normalizeCategoryDocument(document: Record<string, unknown> & { _id?: ObjectId }) {
+  const name = firstNonEmptyString(document.name, document.title) ?? "Untitled Category";
+  const shortDescription =
+    firstNonEmptyString(
+      document.short_description,
+      document.shortDescription,
+      document.tagline,
+      document.description,
+      document.longDescription,
+    ) ?? null;
+  const description =
+    firstNonEmptyString(
+      document.description,
+      document.long_description,
+      document.longDescription,
+      document.short_description,
+      document.shortDescription,
+      document.tagline,
+    ) ?? shortDescription;
+
+  return {
+    ...(document._id ? { _id: document._id } : {}),
+    name,
+    slug: firstNonEmptyString(document.slug) ?? slugifyText(name),
+    short_description: shortDescription,
+    description,
+    banner_image: normalizeMediaValue(
+      document.banner_image ??
+        document.bannerImage ??
+        document.image ??
+        document.banner ??
+        document.categoryBannerImage,
+      "image",
+    ),
+    icon: normalizeMediaValue(document.icon ?? document.icon_image ?? document.thumbnail, "image"),
+    seo_title: firstNonEmptyString(document.seo_title, document.seoTitle, document.meta_title) ?? null,
+    seo_description:
+      firstNonEmptyString(document.seo_description, document.seoDescription, document.meta_description) ?? null,
+    status: normalizeCategoryStatus(document.status, document.is_visible),
+    sort_order: normalizeNumber(document.sort_order ?? document.sortOrder ?? document.position, 0),
+    parent_id: firstNonEmptyString(document.parent_id, document.parentId, document.parent, document.parentRef) ?? null,
+    createdAt: firstNonEmptyString(document.createdAt, document.created_at) ?? null,
+    updatedAt: firstNonEmptyString(document.updatedAt, document.updated_at) ?? null,
+  };
+}
+
+function buildCategoryLookups(categoryDocs: Array<Record<string, unknown> & { _id?: ObjectId }>): CategoryLookup {
+  const byId = new Map<string, Record<string, unknown>>();
+  const bySlug = new Map<string, Record<string, unknown>>();
+  const byName = new Map<string, Record<string, unknown>>();
+
+  for (const rawCategory of categoryDocs) {
+    const normalized = normalizeCategoryDocument(rawCategory);
+    const hydrated = { ...rawCategory, ...normalized };
+    const id = rawCategory._id?.toString?.() ?? firstNonEmptyString(rawCategory.id);
+    if (id) byId.set(id, hydrated);
+    if (normalized.slug) bySlug.set(normalized.slug.toLowerCase(), hydrated);
+    if (normalized.name) byName.set(normalized.name.toLowerCase(), hydrated);
+  }
+
+  return { byId, bySlug, byName };
+}
+
+function resolveCategoryReference(
+  document: Record<string, unknown>,
+  lookups?: CategoryLookup,
+) {
+  const idCandidates = [
+    document.category_id,
+    document.categoryId,
+    document.categoryRef,
+    document.categoryIdString,
+    document.category_id_string,
+  ];
+
+  for (const candidate of idCandidates) {
+    const value = firstNonEmptyString(candidate);
+    if (!value) continue;
+    const direct = lookups?.byId.get(value) ?? lookups?.bySlug.get(value.toLowerCase()) ?? lookups?.byName.get(value.toLowerCase());
+    if (direct) {
+      return {
+        id: firstNonEmptyString(direct._id, direct.id, value),
+        category: direct,
+      };
+    }
+  }
+
+  const slugCandidates = [
+    document.category_slug,
+    document.categorySlug,
+    document.category,
+    document.category_handle,
+  ];
+
+  for (const candidate of slugCandidates) {
+    const value = firstNonEmptyString(candidate);
+    if (!value) continue;
+    const direct = lookups?.bySlug.get(value.toLowerCase());
+    if (direct) {
+      return {
+        id: firstNonEmptyString(direct._id, direct.id),
+        category: direct,
+      };
+    }
+  }
+
+  const nameCandidates = [
+    document.category_title,
+    document.categoryTitle,
+    document.categoryName,
+    document.category_name,
+  ];
+
+  for (const candidate of nameCandidates) {
+    const value = firstNonEmptyString(candidate);
+    if (!value) continue;
+    const direct = lookups?.byName.get(value.toLowerCase());
+    if (direct) {
+      return {
+        id: firstNonEmptyString(direct._id, direct.id),
+        category: direct,
+      };
+    }
+  }
+
+  return {
+    id: firstNonEmptyString(...idCandidates) ?? null,
+    category: null,
+  };
+}
+
+function normalizeProductDocument(
+  document: Record<string, unknown> & { _id?: ObjectId },
+  categoryLookups?: CategoryLookup,
+) {
+  const name = firstNonEmptyString(document.name, document.title, document.product_name) ?? "Untitled Product";
+  const categoryRef = resolveCategoryReference(document, categoryLookups);
+  const primaryImage = normalizeMediaValue(
+    document.image ??
+      document.primary_image ??
+      document.primaryImage ??
+      document.mainImage ??
+      document.mainProductImage ??
+      document.imageUrl ??
+      document.og_image ??
+      (Array.isArray(document.gallery_images) ? document.gallery_images[0] : null) ??
+      (Array.isArray(document.images) ? document.images[0] : null),
+    "image",
+  );
+  const galleryImages = mergeUniqueMedia([
+    primaryImage,
+    ...normalizeMediaArray(document.gallery_images ?? document.images, "image"),
+  ]);
+  const applicationRows = normalizeRepeatableRows(
+    document.application_rows ?? document.applicationRows,
+    "title",
+  );
+  const specificationRows = normalizeRepeatableRows(
+    document.specification_rows ?? document.technicalRows,
+    "property",
+  );
+  const applicationsSummary =
+    extractText(document.applications) ??
+    extractText(document.application) ??
+    (applicationRows.length > 0
+      ? applicationRows
+          .map((row) => row.title ?? row.name ?? row.application_title ?? row.value ?? "")
+          .filter(Boolean)
+          .join(", ")
+      : null);
+
+  return {
+    ...(document._id ? { _id: document._id } : {}),
+    name,
+    slug: firstNonEmptyString(document.slug, document.handle) ?? slugifyText(name),
+    category_id: categoryRef.id,
+    subtitle: firstNonEmptyString(document.subtitle, document.tagline, document.short_line) ?? null,
+    short_description:
+      firstNonEmptyString(
+        document.short_description,
+        document.shortDescription,
+        document.shortLine,
+        document.summary,
+      ) ?? null,
+    detailed_description:
+      firstNonEmptyString(
+        document.detailed_description,
+        document.detailedDescription,
+        document.product_details,
+        document.description,
+      ) ?? null,
+    status: normalizeProductStatus(document.status),
+    featured: Boolean(document.featured),
+    sort_order: normalizeNumber(document.sort_order ?? document.sortOrder ?? document.position, 0),
+    image: primaryImage,
+    gallery_images: galleryImages,
+    application_images: normalizeMediaArray(
+      document.application_images ?? document.applicationImages,
+      "image",
+    ),
+    files: normalizeFileEntries(document.files),
+    brochure_pdf: normalizeMediaValue(document.brochure_pdf ?? document.brochurePdf, "file"),
+    tds_pdf: normalizeMediaValue(document.tds_pdf ?? document.tdsPdf, "file"),
+    msds_pdf: normalizeMediaValue(document.msds_pdf ?? document.msdsPdf, "file"),
+    certificate: normalizeMediaValue(document.certificate, "file"),
+    applications: applicationsSummary,
+    application_rows: applicationRows,
+    key_features: extractText(document.key_features ?? document.keyFeatures) ?? null,
+    characteristics: extractText(document.characteristics) ?? null,
+    technical_specifications:
+      firstNonEmptyString(document.technical_specifications, document.technicalSummary) ?? null,
+    specification_rows: specificationRows,
+    industries_served:
+      extractText(document.industries_served) ??
+      extractText(document.industriesServed) ??
+      extractText(document.industries) ??
+      null,
+    unit_of_measurement:
+      firstNonEmptyString(document.unit_of_measurement, document.unit, document.uom) ?? null,
+    moq: firstNonEmptyString(document.moq) ?? null,
+    available_packing_size:
+      firstNonEmptyString(document.available_packing_size, document.packingSize) ?? null,
+    tags: extractStringArray(document.tags),
+    createdAt: firstNonEmptyString(document.createdAt, document.created_at) ?? null,
+    updatedAt: firstNonEmptyString(document.updatedAt, document.updated_at) ?? null,
+  };
+}
+
+async function normalizeManagedCollectionDocument(
+  collections: Awaited<ReturnType<typeof getMongoCollections>>,
+  collectionName: CollectionName,
+  document: Record<string, unknown> & { _id?: ObjectId },
+  categoryLookups?: CategoryLookup,
+) {
+  if (collectionName === "categories") {
+    return normalizeCategoryDocument(document);
+  }
+
+  if (collectionName === "products") {
+    if (categoryLookups) {
+      return normalizeProductDocument(document, categoryLookups);
+    }
+
+    const categoryDocs = await collections.categories.find({}).toArray();
+    return normalizeProductDocument(document, buildCategoryLookups(categoryDocs));
+  }
+
+  return document;
+}
+
 async function handlePublicRoutes(request: Request, pathname: string) {
   const { categories, products, enquiries, brochure_enquiries } = await getMongoCollections();
   const url = new URL(request.url);
 
   if (pathname === "/api/public/catalog" && request.method === "GET") {
     const [categoryDocs, productDocs] = await Promise.all([
-      categories
-        .find({ $or: [{ status: { $ne: "inactive" } }, { status: { $exists: false } }] })
-        .sort({ sort_order: 1, createdAt: -1 })
-        .toArray(),
-      products
-        .find({ status: "published" })
-        .sort({ sort_order: 1, createdAt: -1 })
-        .toArray(),
+      categories.find({}).sort({ sort_order: 1, createdAt: -1 }).toArray(),
+      products.find({}).sort({ sort_order: 1, createdAt: -1 }).toArray(),
     ]);
+    const categoryLookups = buildCategoryLookups(categoryDocs);
+    const normalizedCategories = categoryDocs
+      .map((category) => normalizeCategoryDocument(category))
+      .filter((category) => category.status !== "inactive");
+    const normalizedProducts = productDocs
+      .map((product) => normalizeProductDocument(product, categoryLookups))
+      .filter((product) => product.status === "published");
 
-    const categoryById = new Map<string, Record<string, any>>();
+    const categoryById = new Map<string, Record<string, unknown>>();
     for (const category of categoryDocs) {
-      if (category?._id) {
-        categoryById.set(category._id.toString(), category);
-      }
+      if (category._id) categoryById.set(category._id.toString(), category);
     }
 
-    const productsByCategoryId = new Map<string, Record<string, any>[]>();
-    for (const product of productDocs) {
-      const categoryId = product.category_id ? String(product.category_id) : null;
+    const productsByCategoryId = new Map<string, Array<Record<string, unknown>>>();
+    for (const product of normalizedProducts) {
+      const categoryId = firstNonEmptyString(product.category_id);
       if (!categoryId) continue;
-      const list = productsByCategoryId.get(categoryId) ?? [];
-      list.push(product);
-      productsByCategoryId.set(categoryId, list);
+      const bucket = productsByCategoryId.get(categoryId) ?? [];
+      bucket.push(product);
+      productsByCategoryId.set(categoryId, bucket);
     }
 
-    const publicCategories = categoryDocs.map((category) => {
+    const publicCategories = normalizedCategories.map((category) => {
       const categoryId = category._id?.toString?.() ?? null;
       const relatedProducts = categoryId ? productsByCategoryId.get(categoryId) ?? [] : [];
-      const title = String(category.name ?? category.title ?? "Category");
-      const slug = String(category.slug ?? slugifyText(title));
-      const image = pickFirstMediaUrl(
-        category.banner_image,
-        category.image,
-        category.banner,
-        category.bannerImage,
-        category.categoryBannerImage,
-        category.icon,
-      );
 
       return {
         id: categoryId,
-        slug,
-        title,
-        tagline: String(
-          category.short_description ??
-          category.shortDescription ??
-          category.longDescription ??
-          category.description ??
-          "",
-        ),
-        image,
+        slug: category.slug,
+        title: category.name,
+        tagline: category.short_description ?? category.description ?? "",
+        image: category.banner_image?.url ?? category.icon?.url ?? "",
         items: relatedProducts
-          .map((product) => String(product.name ?? product.title ?? ""))
-          .filter(Boolean),
-        status: category.status ?? "active",
-        sort_order: category.sort_order ?? category.sortOrder ?? 0,
+          .map((product) => firstNonEmptyString(product.name))
+          .filter((item): item is string => Boolean(item)),
+        status: category.status,
+        sort_order: category.sort_order,
       };
     });
 
-    const publicProducts = productDocs.map((product) => {
-      const category = product.category_id ? categoryById.get(String(product.category_id)) : undefined;
-      const title = String(product.name ?? product.title ?? "Product");
-      const image = pickFirstMediaUrl(
-        product.image,
-        product.imageUrl,
-        product.mainImage,
-        product.mainProductImage,
-        product.primary_image,
-        Array.isArray(product.images) ? product.images[0] : null,
-        product.og_image,
-      );
-      const galleryImages = extractMediaList(product.gallery_images).length > 0
-        ? extractMediaList(product.gallery_images)
-        : extractMediaList(product.images);
-      const applicationImages = extractMediaList(product.application_images).length > 0
-        ? extractMediaList(product.application_images)
-        : extractMediaList(product.applicationRows);
-      const files = [
-        { key: "brochure_pdf", value: product.brochure_pdf },
-        { key: "tds_pdf", value: product.tds_pdf },
-        { key: "msds_pdf", value: product.msds_pdf },
-        { key: "certificate", value: product.certificate },
-      ]
-        .map(({ key, value }) => {
-          const url = extractMediaUrl(value);
-          if (!url) return null;
-          const media = value as Record<string, unknown>;
-          return {
-            key,
-            url,
-            name: typeof media.name === "string" ? media.name : typeof media.filename === "string" ? media.filename : `${key}.pdf`,
-            type: typeof media.type === "string" ? media.type : typeof media.mimeType === "string" ? media.mimeType : null,
-          };
-        })
-        .filter((item): item is { key: string; url: string; name: string; type: string | null } => item !== null);
+    const publicProducts = normalizedProducts.map((product) => {
+      const category =
+        firstNonEmptyString(product.category_id)
+          ? categoryById.get(String(product.category_id))
+          : null;
+      const normalizedCategory = category ? normalizeCategoryDocument(category as Record<string, unknown> & { _id?: ObjectId }) : null;
+      const directFiles = normalizeFileEntries(product.files);
+      const derivedFiles = [
+        product.brochure_pdf
+          ? { key: "brochure_pdf", ...product.brochure_pdf }
+          : null,
+        product.tds_pdf ? { key: "tds_pdf", ...product.tds_pdf } : null,
+        product.msds_pdf ? { key: "msds_pdf", ...product.msds_pdf } : null,
+        product.certificate ? { key: "certificate", ...product.certificate } : null,
+      ].filter((item): item is { key: string; name: string; url: string; type: string } => item !== null);
+      const seenFiles = new Set<string>();
+      const files = [...directFiles, ...derivedFiles].filter((file) => {
+        const identity = `${file.key}:${file.url}`;
+        if (seenFiles.has(identity)) return false;
+        seenFiles.add(identity);
+        return true;
+      });
 
       return {
         id: product._id?.toString?.() ?? null,
-        slug: String(product.slug ?? slugifyText(title)),
-        name: title,
-        subtitle: product.subtitle ?? null,
-        category_id: product.category_id ?? null,
-        category_slug: category?.slug ?? product.category_slug ?? product.categorySlug ?? product.category ?? null,
-        category_title: category?.name ?? category?.title ?? product.category_title ?? product.categoryTitle ?? product.categoryName ?? null,
+        slug: product.slug,
+        name: product.name,
+        subtitle: product.subtitle,
+        category_id: product.category_id,
+        category_slug:
+          normalizedCategory?.slug ??
+          firstNonEmptyString((product as Record<string, unknown>).category_slug, (product as Record<string, unknown>).categorySlug, (product as Record<string, unknown>).category) ??
+          null,
+        category_title:
+          normalizedCategory?.name ??
+          firstNonEmptyString((product as Record<string, unknown>).category_title, (product as Record<string, unknown>).categoryTitle, (product as Record<string, unknown>).categoryName) ??
+          null,
         featured: Boolean(product.featured),
-        image,
-        gallery_images: galleryImages,
-        application_images: applicationImages,
+        image: product.image?.url ?? null,
+        gallery_images: product.gallery_images ?? [],
+        application_images: product.application_images ?? [],
         files,
-        applications: extractStringArray(product.applications ?? product.application_rows ?? product.applicationRows ?? product.application),
-        application_rows: Array.isArray(product.application_rows)
-          ? product.application_rows
-          : Array.isArray(product.applicationRows)
-            ? product.applicationRows
-            : [],
-        industries: extractStringArray(product.industries_served ?? product.industriesServed),
+        applications: extractStringArray(product.applications ?? product.application_rows),
+        application_rows: product.application_rows ?? [],
+        industries: extractStringArray(product.industries_served),
         tags: extractStringArray(product.tags),
-        characteristics: extractText(product.characteristics),
-        unit_of_measurement: product.unit_of_measurement ?? product.unit ?? product.uom ?? null,
+        characteristics: product.characteristics ?? null,
+        unit_of_measurement: product.unit_of_measurement ?? null,
         moq: product.moq ?? null,
-        available_packing_size: product.available_packing_size ?? product.packingSize ?? null,
-        short_description: product.short_description ?? product.shortDescription ?? product.shortLine ?? null,
-        detailed_description: product.detailed_description ?? product.detailedDescription ?? product.description ?? null,
-        key_features: extractText(product.key_features ?? product.keyFeatures),
-        technical_specifications: product.technical_specifications ?? product.technicalSummary ?? null,
-        specification_rows: Array.isArray(product.specification_rows)
-          ? product.specification_rows
-          : Array.isArray(product.technicalRows)
-            ? product.technicalRows
-            : [],
+        available_packing_size: product.available_packing_size ?? null,
+        short_description: product.short_description ?? null,
+        detailed_description: product.detailed_description ?? null,
+        key_features: product.key_features ?? null,
+        technical_specifications: product.technical_specifications ?? null,
+        specification_rows: product.specification_rows ?? [],
         primary_image: product.image ?? null,
         createdAt: product.createdAt ?? null,
         updatedAt: product.updatedAt ?? null,
@@ -369,50 +793,76 @@ async function handlePublicRoutes(request: Request, pathname: string) {
     const tag = params.get("tag");
     const page = Math.max(1, Number(params.get("page") || 1));
     const limit = Math.min(100, Math.max(1, Number(params.get("limit") || 24)));
+    const [categoryDocs, productDocs] = await Promise.all([
+      categories.find({}).toArray(),
+      products.find({}).toArray(),
+    ]);
+    const categoryLookups = buildCategoryLookups(categoryDocs);
+    const requestedCategory = category
+      ? categoryLookups.byId.get(category) ??
+        categoryLookups.bySlug.get(category.toLowerCase()) ??
+        categoryLookups.byName.get(category.toLowerCase()) ??
+        null
+      : null;
+    const requestedCategoryId = requestedCategory
+      ? firstNonEmptyString(requestedCategory._id, requestedCategory.id)
+      : category;
 
-    const mongoQuery: Record<string, unknown> = { status: "published" };
-    if (category) mongoQuery.category_id = category;
-    if (featured !== null) {
-      const f = parseBool(featured);
-      if (f !== undefined) mongoQuery.featured = f;
-    }
-    if (tag) mongoQuery.tags = { $in: [tag] };
+    const normalizedProducts = productDocs
+      .map((product) => normalizeProductDocument(product, categoryLookups))
+      .filter((product) => product.status === "published");
+    const featuredFilter = featured !== null ? parseBool(featured) : undefined;
+    const normalizedQuery = q.toLowerCase();
 
-    if (q) {
-      // basic text search across a few fields
-      mongoQuery.$or = [
-        { name: { $regex: q, $options: "i" } },
-        { short_description: { $regex: q, $options: "i" } },
-        { detailed_description: { $regex: q, $options: "i" } },
-        { slug: { $regex: q, $options: "i" } },
-      ];
-    }
+    const filteredProducts = normalizedProducts.filter((product) => {
+      if (requestedCategoryId && product.category_id !== requestedCategoryId) return false;
+      if (featuredFilter !== undefined && Boolean(product.featured) !== featuredFilter) return false;
+      if (tag && !(product.tags ?? []).includes(tag)) return false;
+      if (!normalizedQuery) return true;
 
-    const total = await products.countDocuments(mongoQuery);
-    const results = await products
-      .find(mongoQuery)
-      .sort({ featured: -1, sort_order: 1, createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .toArray();
+      const haystack = [
+        product.name,
+        product.slug,
+        product.short_description ?? "",
+        product.detailed_description ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
 
-    const rows = results.map((product) => ({
+      return haystack.includes(normalizedQuery);
+    });
+
+    const sortedProducts = [...filteredProducts].sort((left, right) => {
+      const featuredDelta = Number(Boolean(right.featured)) - Number(Boolean(left.featured));
+      if (featuredDelta !== 0) return featuredDelta;
+
+      const sortDelta = normalizeNumber(left.sort_order, 0) - normalizeNumber(right.sort_order, 0);
+      if (sortDelta !== 0) return sortDelta;
+
+      return String(right.createdAt ?? "").localeCompare(String(left.createdAt ?? ""));
+    });
+
+    const total = sortedProducts.length;
+    const pagedProducts = sortedProducts.slice((page - 1) * limit, page * limit);
+    const rows = pagedProducts.map((product) => ({
       id: product._id?.toString?.() ?? null,
-      slug: String(product.slug ?? slugifyText(String(product.name ?? product.title ?? ""))),
-      name: String(product.name ?? product.title ?? ""),
+      slug: product.slug,
+      name: product.name,
       short_description: product.short_description ?? null,
-      image: extractMediaUrl(product.image) ?? null,
+      image: product.image?.url ?? null,
       featured: Boolean(product.featured),
       category_id: product.category_id ?? null,
       tags: extractStringArray(product.tags),
     }));
-
-    // simple faceting: counts per category for current query
-    const facetPipeline = [
-      { $match: mongoQuery },
-      { $group: { _id: "$category_id", count: { $sum: 1 } } },
-    ];
-    const facets = await products.aggregate(facetPipeline).toArray();
+    const facetMap = new Map<string, number>();
+    for (const product of filteredProducts) {
+      const key = firstNonEmptyString(product.category_id) ?? "__null__";
+      facetMap.set(key, (facetMap.get(key) ?? 0) + 1);
+    }
+    const facets = Array.from(facetMap.entries()).map(([categoryId, count]) => ({
+      category_id: categoryId === "__null__" ? null : categoryId,
+      count,
+    }));
 
     return jsonResponse({
       total,
@@ -825,13 +1275,42 @@ async function handleCollectionRoutes(request: Request, pathname: string, collec
     let cursor = collection.find(query).sort({ createdAt: -1 });
     if (limit && limit > 0) cursor = cursor.limit(limit);
     const items = await cursor.toArray();
+    if (collectionName === "categories" || collectionName === "products") {
+      const categoryLookups =
+        collectionName === "products"
+          ? buildCategoryLookups(await collections.categories.find({}).toArray())
+          : undefined;
+      const normalized = await Promise.all(
+        items.map((item) =>
+          normalizeManagedCollectionDocument(
+            collections,
+            collectionName,
+            item as Record<string, unknown> & { _id?: ObjectId },
+            categoryLookups,
+          ),
+        ),
+      );
+      return jsonResponse(
+        normalized.map((item) => serializeDocument(item as Record<string, unknown> & { _id?: ObjectId })),
+      );
+    }
+
     return jsonResponse(items.map((item) => serializeDocument(item)));
   }
 
   if (request.method === "POST" && pathname === `/api/${routeBase}`) {
     const body = await request.json();
     const now = new Date().toISOString();
-    const payload = { ...body, createdAt: now, updatedAt: now };
+    const normalized =
+      collectionName === "categories" || collectionName === "products"
+        ? await normalizeManagedCollectionDocument(
+            collections,
+            collectionName,
+            body as Record<string, unknown>,
+          )
+        : (body as Record<string, unknown>);
+    const payload = { ...normalized, createdAt: now, updatedAt: now };
+    delete (payload as Record<string, unknown>)._id;
     const result = await collection.insertOne(payload);
     return jsonResponse({ id: result.insertedId.toString(), ...payload });
   }
@@ -839,7 +1318,25 @@ async function handleCollectionRoutes(request: Request, pathname: string, collec
   if ((request.method === "PUT" || request.method === "PATCH") && idMatch) {
     const id = idMatch[1];
     const body = await request.json();
-    const update = { ...body, updatedAt: new Date().toISOString() };
+    const existing = await collection.findOne({ _id: new ObjectId(id) });
+    if (!existing) return errorResponse("Item not found", 404);
+
+    const merged =
+      collectionName === "categories" || collectionName === "products"
+        ? await normalizeManagedCollectionDocument(
+            collections,
+            collectionName,
+            { ...existing, ...body, _id: existing._id } as Record<string, unknown> & { _id?: ObjectId },
+          )
+        : ({ ...existing, ...body } as Record<string, unknown>);
+    const update = {
+      ...merged,
+      createdAt:
+        firstNonEmptyString(existing.createdAt, (merged as Record<string, unknown>).createdAt) ??
+        new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    delete (update as Record<string, unknown>)._id;
     const result = await collection.findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $set: update },

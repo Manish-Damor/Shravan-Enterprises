@@ -45,6 +45,7 @@ type ProductDocument = {
   featured?: boolean;
   sort_order?: number;
   image?: MediaValue | null;
+  gallery_images?: MediaValue[];
   applications?: string | null;
   application_rows?: RepeatableRow[];
   key_features?: string | null;
@@ -71,6 +72,7 @@ type ProductForm = {
   featured: boolean;
   sort_order: number;
   image: MediaValue | null;
+  gallery_images: MediaValue[];
   applications: string;
   application_rows: RepeatableRow[];
   key_features: string;
@@ -94,6 +96,7 @@ const emptyForm: ProductForm = {
   featured: false,
   sort_order: 0,
   image: null,
+  gallery_images: [],
   applications: "",
   application_rows: [],
   key_features: "",
@@ -154,6 +157,7 @@ function ProductsPage() {
         featured: form.featured,
         sort_order: form.sort_order,
         image: form.image,
+        gallery_images: form.gallery_images,
         applications: form.applications,
         application_rows: form.application_rows,
         key_features: form.key_features,
@@ -233,7 +237,8 @@ function ProductsPage() {
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">
             Keep product entry clean for non-technical users. Add only the main
-            product details, applications, features, technical rows, and one image.
+            product details, applications, features, technical rows, one main image,
+            and multiple product images.
           </p>
         </div>
 
@@ -447,6 +452,7 @@ function normalizeToForm(product: ProductDocument): ProductForm {
     featured: product.featured ?? false,
     sort_order: product.sort_order ?? 0,
     image: product.image ?? null,
+    gallery_images: product.gallery_images ?? [],
     applications: product.applications ?? "",
     application_rows: product.application_rows ?? [],
     key_features: product.key_features ?? "",
@@ -590,6 +596,18 @@ function ProductEditorDialog({
                   onChange({
                     ...form,
                     image: Array.isArray(value) ? value[0] ?? null : value,
+                  })
+                }
+              />
+              <MediaDropzone
+                label="Product gallery images"
+                value={form.gallery_images}
+                accept="image/*"
+                multiple
+                onChange={(value) =>
+                  onChange({
+                    ...form,
+                    gallery_images: Array.isArray(value) ? value : value ? [value] : [],
                   })
                 }
               />
@@ -779,6 +797,10 @@ function ProductEditorDialog({
                   </Badge>
                   <Badge className="rounded-full bg-white/10 text-white hover:bg-white/10">
                     {form.status}
+                  </Badge>
+                  <Badge className="rounded-full bg-white/10 text-white hover:bg-white/10">
+                    {(form.image ? 1 : 0) + form.gallery_images.length} image
+                    {(form.image ? 1 : 0) + form.gallery_images.length === 1 ? "" : "s"}
                   </Badge>
                   {form.featured ? (
                     <Badge className="rounded-full bg-emerald-400/20 text-emerald-200 hover:bg-emerald-400/20">

@@ -27,6 +27,11 @@ export default function ProductPage({
 }: Props) {
   if (!product) return <div className="container mx-auto p-8">Product not found</div>;
 
+  const galleryImages = [
+    ...(product.image ? [product.image] : []),
+    ...(product.gallery_images ?? []),
+  ].filter((image, index, images) => Boolean(image) && images.indexOf(image) === index);
+
   return (
     <div className="product-page">
       <ProductHero product={product} category={category} />
@@ -46,15 +51,7 @@ export default function ProductPage({
             </div>
 
             <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
-              <ProductGallery
-                images={
-                  product.gallery_images && product.gallery_images.length > 0
-                    ? product.gallery_images
-                    : product.image
-                      ? [product.image]
-                      : []
-                }
-              />
+              <ProductGallery images={galleryImages} />
               <InquiryForm product={product} />
             </aside>
           </div>

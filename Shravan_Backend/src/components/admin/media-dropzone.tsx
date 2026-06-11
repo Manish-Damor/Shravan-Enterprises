@@ -44,7 +44,15 @@ export function MediaDropzone({
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const next = await Promise.all(Array.from(files).map(fileToMediaValue));
-    onChange(multiple ? next : next[0] ?? null);
+    if (multiple) {
+      const merged = [...items, ...next].filter(
+        (item, index, list) => list.findIndex((entry) => entry.url === item.url) === index,
+      );
+      onChange(merged);
+      return;
+    }
+
+    onChange(next[0] ?? null);
   };
 
   return (
