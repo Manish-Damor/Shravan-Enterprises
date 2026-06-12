@@ -157,4 +157,4 @@ INSERT INTO public.categories (name, slug, sort_order) VALUES
   ('Resin & Chemicals', 'resin-chemicals', 2),
   ('Vacuum Infusion', 'vacuum-infusion', 3),
   ('FRP Accessories', 'frp-accessories', 4),
-  ('Stone Care & Surface', 'stone-care-surface', 5);
+  ('Stone-Pro Systems', 'stone-Pro-surface', 5);

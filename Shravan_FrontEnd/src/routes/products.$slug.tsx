@@ -12,10 +12,7 @@ import {
 import type { ReactNode } from "react";
 import { SectionHeader } from "@/components/site/SectionHeader";
 import { fetchPublicCatalog } from "@/lib/catalog";
-import {
-  normalizeCategory,
-  normalizeProduct,
-} from "@/lib/product-normalizer";
+import { normalizeCategory, normalizeProduct } from "@/lib/product-normalizer";
 
 export const Route = createFileRoute("/products/$slug")({
   loader: async ({ params }) => {
@@ -73,9 +70,8 @@ export const Route = createFileRoute("/products/$slug")({
 
 function ProductCategory() {
   const { category, categories, items, featured } = Route.useLoaderData();
-  const relatedCategories = categories
-    .filter((item) => item.slug !== category.slug)
-    .slice(0, 4);
+  const relatedCategories = categories.filter((item) => item.slug !== category.slug).slice(0, 4);
+  const highlightedProducts = featured.length > 0 ? featured : items.slice(0, 3);
 
   return (
     <>
@@ -89,15 +85,29 @@ function ProductCategory() {
             height={900}
           />
         </div>
+        <div
+          className="absolute inset-0 opacity-[0.1]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)",
+            backgroundSize: "54px 54px",
+          }}
+        />
         <div className="relative container mx-auto px-6 py-20 md:py-24">
-          <Link
-            to="/products"
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm text-white/85 backdrop-blur-sm transition hover:bg-white/12"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to catalog
-          </Link>
+          <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm text-white/85 backdrop-blur-sm transition hover:bg-white/12"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to catalog
+            </Link>
+            <span className="hidden text-white/35 md:inline">/</span>
+            <span className="rounded-full border border-white/10 bg-black/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/78">
+              {category.title}
+            </span>
+          </div>
 
-          <div className="mt-8 grid items-end gap-10 lg:grid-cols-[1.35fr_0.8fr]">
+          <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_24rem] xl:items-stretch">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
                 <BadgeCheck className="h-3.5 w-3.5" />
@@ -109,6 +119,17 @@ function ProductCategory() {
               <p className="mt-5 max-w-3xl text-lg leading-relaxed text-white/78 md:text-xl">
                 {category.tagline}
               </p>
+
+              <div className="mt-7 flex flex-wrap gap-2.5">
+                {(category.items ?? []).slice(0, 5).map((item) => (
+                  <span
+                    key={item}
+                    className="rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm text-white/80 backdrop-blur-sm"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
@@ -125,15 +146,8 @@ function ProductCategory() {
                   Request quote
                 </Link>
               </div>
-            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45 }}
-              className="grid gap-4 rounded-[2rem] border border-white/10 bg-white/8 p-5 backdrop-blur-sm"
-            >
-              <div className="grid grid-cols-2 gap-4">
+              <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 <StatCard
                   icon={<Boxes className="h-5 w-5" />}
                   label="Products"
@@ -144,13 +158,35 @@ function ProductCategory() {
                   label="Featured"
                   value={String(featured.length)}
                 />
+                <StatCard
+                  icon={<BadgeCheck className="h-5 w-5" />}
+                  label="Item Lines"
+                  value={String(category.items?.length ?? 0)}
+                />
               </div>
-              <div className="rounded-[1.6rem] border border-white/10 bg-black/15 p-5">
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45 }}
+              className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.06))] p-5 backdrop-blur-sm"
+            >
+              <div className="overflow-hidden rounded-[1.6rem] border border-white/10">
+                <img
+                  src={category.image || undefined}
+                  alt={category.title}
+                  className="h-60 w-full object-cover"
+                  width={1280}
+                  height={896}
+                />
+              </div>
+              <div className="mt-5 rounded-[1.6rem] border border-white/10 bg-black/15 p-5">
                 <div className="text-xs font-semibold uppercase tracking-[0.22em] text-white/55">
                   Top products in this category
                 </div>
                 <div className="mt-4 space-y-3">
-                  {(featured.length > 0 ? featured : items.slice(0, 3)).map((product, index) => (
+                  {highlightedProducts.map((product, index) => (
                     <Link
                       key={product.slug}
                       to="/product/$slug"
@@ -181,99 +217,117 @@ function ProductCategory() {
             title={`Preview all ${items.length} products in ${category.title}.`}
           />
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
-            Each product below links to a dedicated detail page with overview,
-            specifications, documents, inquiry form, and related products from the same category.
+            Each product below links to a dedicated detail page with overview, specifications,
+            documents, inquiry form, and related products from the same category.
           </p>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {items.map((product, index) => (
-              <motion.div
-                key={product.slug}
-                initial={{ opacity: 0, y: 22 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.45, delay: index * 0.03 }}
-              >
-                <Link
-                  to="/product/$slug"
-                  params={{ slug: product.slug }}
-                  className="group flex h-full flex-col overflow-hidden rounded-[2rem] border border-border/80 bg-card shadow-card transition-smooth hover:-translate-y-1 hover:border-primary/35 hover:shadow-elegant"
+          {items.length > 0 ? (
+            <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {items.map((product, index) => (
+                <motion.div
+                  key={product.slug}
+                  initial={{ opacity: 0, y: 22 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-60px" }}
+                  transition={{ duration: 0.45, delay: index * 0.03 }}
                 >
-                  <div className="relative overflow-hidden border-b border-border/70 bg-[linear-gradient(145deg,_oklch(0.98_0.01_150),_oklch(0.94_0.015_150))]">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_oklch(0.65_0.18_152_/_0.18),_transparent_35%)]" />
-                    <div className="flex min-h-[240px] items-center justify-center p-8">
-                      <img
-                        src={product.image || category.image || undefined}
-                        alt={product.name}
-                        loading="lazy"
-                        className="max-h-44 object-contain transition duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                    {product.featured ? (
-                      <div className="absolute left-5 top-5 rounded-full bg-primary px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground">
-                        Featured
+                  <Link
+                    to="/product/$slug"
+                    params={{ slug: product.slug }}
+                    className="group flex h-full flex-col overflow-hidden rounded-[2rem] border border-border/80 bg-card shadow-card transition-smooth hover:-translate-y-1 hover:border-primary/35 hover:shadow-elegant"
+                  >
+                    <div className="relative overflow-hidden border-b border-border/70 bg-[linear-gradient(145deg,_oklch(0.98_0.01_150),_oklch(0.94_0.015_150))]">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_oklch(0.65_0.18_152_/_0.18),_transparent_35%)]" />
+                      <div className="flex min-h-[240px] items-center justify-center p-8">
+                        <img
+                          src={product.image || category.image || undefined}
+                          alt={product.name}
+                          loading="lazy"
+                          className="max-h-44 object-contain transition duration-500 group-hover:scale-105"
+                        />
                       </div>
-                    ) : null}
-                  </div>
-
-                  <div className="flex flex-1 flex-col p-6">
-                    <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/75">
-                      {category.title}
-                    </div>
-                    <h2 className="mt-3 text-2xl font-bold leading-tight text-foreground transition group-hover:text-primary">
-                      {product.name}
-                    </h2>
-                    <p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">
-                      {product.short_description ??
-                        product.detailed_description ??
-                        "Industrial-grade product profile with application and specification support."}
-                    </p>
-
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {(product.tags?.slice(0, 2) ?? []).map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                      {(product.applications?.length ?? 0) > 0 ? (
-                        <span className="rounded-full bg-primary/8 px-3 py-1 text-xs font-medium text-primary">
-                          {product.applications?.[0]}
-                        </span>
+                      {product.featured ? (
+                        <div className="absolute left-5 top-5 rounded-full bg-primary px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground">
+                          Featured
+                        </div>
                       ) : null}
                     </div>
 
-                    <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                      Open product details
-                      <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                    <div className="flex flex-1 flex-col p-6">
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/75">
+                        {category.title}
+                      </div>
+                      <h2 className="mt-3 text-2xl font-bold leading-tight text-foreground transition group-hover:text-primary">
+                        {product.name}
+                      </h2>
+                      <p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">
+                        {product.short_description ??
+                          product.detailed_description ??
+                          "Industrial-grade product profile with application and specification support."}
+                      </p>
+
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        {(product.tags?.slice(0, 2) ?? []).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {(product.applications?.length ?? 0) > 0 ? (
+                          <span className="rounded-full bg-primary/8 px-3 py-1 text-xs font-medium text-primary">
+                            {product.applications?.[0]}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                        Open product details
+                        <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-10 rounded-[2rem] border border-border bg-card p-8 shadow-card">
+              <div className="max-w-2xl">
+                <div className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">
+                  Catalog update in progress
+                </div>
+                <h2 className="mt-3 text-3xl font-bold text-foreground">
+                  Products for this category will be listed here.
+                </h2>
+                <p className="mt-4 text-base leading-7 text-muted-foreground">
+                  This category page is ready and the item coverage is shown below. Individual
+                  products can be published into this section as they are added to the catalog.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="border-y border-border/70 bg-secondary/35 py-16">
+      <section className="border-y border-border/70 bg-secondary/35 py-18">
         <div className="container mx-auto px-6">
           <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
             <div>
               <SectionHeader
                 eyebrow="Category Coverage"
-                title="Common materials and supply lines in this category."
+                title={`Everything covered under ${category.title}.`}
               />
               <p className="mt-4 max-w-xl text-muted-foreground">
-                Useful for fast scanning when buyers want to compare the full range before opening individual product pages.
+                Useful for fast scanning when buyers want to compare the full range before opening
+                individual product pages.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {(category.items ?? []).map((item) => (
                 <div
                   key={item}
-                  className="rounded-2xl border border-border bg-white/80 px-4 py-4 text-sm font-medium text-foreground shadow-sm"
+                  className="rounded-[1.5rem] border border-border bg-white/85 px-5 py-4 text-sm font-medium text-foreground shadow-sm"
                 >
                   {item}
                 </div>
@@ -321,15 +375,7 @@ function ProductCategory() {
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
+function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <div className="rounded-[1.5rem] border border-white/10 bg-black/15 p-4">
       <div className="flex items-center gap-2 text-white/65">{icon}</div>

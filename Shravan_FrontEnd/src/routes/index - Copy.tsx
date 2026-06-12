@@ -157,7 +157,7 @@ function Home() {
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/78 md:text-xl">
                 Shravan Enterprises delivers FRP raw materials, industrial consumables,
-                stone-care systems, vacuum-process products, and allied supply solutions
+                Stone-Pro systems, vacuum-process products, and allied supply solutions
                 with sharper quality control and a more dependable service experience.
               </p>
 

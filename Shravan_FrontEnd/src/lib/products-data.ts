@@ -42,8 +42,8 @@ export const categories: Category[] = [
     items: ["Air Removal Rollers", "Paint Tray", "Foam Roller", "Fur Roller", "Paint Brushes", "Adhesive Tape", "Mould Wax", "PVA Powder", "Fillers", "Release Agents"],
   },
   {
-    slug: "stone-care",
-    title: "Stone Care & Surface",
+    slug: "stone-Pro",
+    title: "Stone Pro & Surface",
     tagline: "Sealers and protection systems engineered for Italian marble & granite.",
     image: stonecare,
     items: ["Top Surface Sealer", "Stone Protection Products", "Vacuum Bond Solutions", "Marble & Granite Surface Products"],

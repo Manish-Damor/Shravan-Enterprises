@@ -1,10 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  createFileRoute,
-  Link,
-  Outlet,
-  useRouterState,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { PageHero } from "@/components/site/PageHero";
@@ -14,18 +9,17 @@ export const Route = createFileRoute("/products")({
   head: () => ({
     meta: [
       {
-        title:
-          "Products - FRP, Fiberglass, Resin & Stone Care | Shravan Enterprises",
+        title: "Products - FRP, Fiberglass, Resin & Stone Care | Shravan Enterprises",
       },
       {
         name: "description",
         content:
-          "Complete catalog of FRP raw materials, fiberglass, polyester resins, vacuum infusion consumables, accessories and stone-care chemistries.",
+          "Complete catalog of FRP raw materials, fiberglass, resins, vacuum infusion consumables, accessories, stone-Pro chemistries and industrial supply categories.",
       },
       { property: "og:title", content: "Products - Shravan Enterprises" },
       {
         property: "og:description",
-        content: "Explore our premium catalog across 5 industrial categories.",
+        content: "Explore our premium catalog across all active industrial categories.",
       },
     ],
     links: [{ rel: "canonical", href: "/products" }],
@@ -49,7 +43,7 @@ function Products() {
       <PageHero
         eyebrow="Our Products"
         title="A complete catalog for industrial excellence."
-        description="Premium raw materials, consumables and accessories across 5 specialized categories."
+        description="Premium raw materials, consumables and accessories across every active product category."
       />
       <section className="py-24">
         <div className="container mx-auto space-y-10 px-6">
@@ -61,11 +55,7 @@ function Products() {
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Link
-                to="/products/$slug"
-                params={{ slug: category.slug }}
-                className="group block"
-              >
+              <Link to="/products/$slug" params={{ slug: category.slug }} className="group block">
                 <div
                   className={`grid gap-0 overflow-hidden rounded-3xl border border-border bg-card shadow-card transition-smooth hover:shadow-elegant lg:grid-cols-2 ${
                     index % 2 === 1 ? "lg:[direction:rtl]" : ""

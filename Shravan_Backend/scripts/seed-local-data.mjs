@@ -48,7 +48,7 @@ const categorySeed = [
   },
   {
     name: "Stone Care & Surface",
-    slug: "stone-care",
+    slug: "stone-Pro",
     short_description: "Sealers and protection systems engineered for marble & granite.",
     banner_image: { url: "/src/assets/stonecare.jpg" },
     status: "active",

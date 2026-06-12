@@ -167,7 +167,7 @@ function BrochurePage() {
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80 md:text-xl">
                 Get a polished overview of Shravan Enterprises, our industrial
                 product categories, and the supply capabilities we bring to
-                composite, stone-care, packaging, and process industries.
+                composite, stone-Pro, packaging, and process industries.
               </p>
 
               <div className="mt-8 grid gap-3 sm:grid-cols-3">

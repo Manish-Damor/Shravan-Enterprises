@@ -5,6 +5,8 @@ import {
   Award,
   BadgeCheck,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Factory,
   Quote,
   Shield,
@@ -60,8 +62,7 @@ const PRODUCT_CATEGORIES = [
   "Packaging Materials",
 ];
 
-const safeJsonLd = (data: unknown) =>
-  JSON.stringify(data).replace(/</g, "\\u003c");
+const safeJsonLd = (data: unknown) => JSON.stringify(data).replace(/</g, "\\u003c");
 
 const homeStructuredData = {
   "@context": "https://schema.org",
@@ -74,8 +75,7 @@ const homeStructuredData = {
       logo: LOGO_URL,
       image: SEO_IMAGE,
       description: SEO_DESCRIPTION,
-      slogan:
-        "Premium FRP, resin, stone pro and industrial supply solutions.",
+      slogan: "Premium FRP, resin, stone pro and industrial supply solutions.",
       email: "shravanenterprises1312@gmail.com",
       address: {
         "@type": "PostalAddress",
@@ -138,8 +138,7 @@ const homeStructuredData = {
       "@id": `${SITE_URL}/#webpage`,
       url: SITE_URL,
       name: SEO_TITLE,
-      headline:
-        "Shravan Enterprises - FRP, Resin, Stone Pro and Industrial Supply Solutions",
+      headline: "Shravan Enterprises - FRP, Resin, Stone Pro and Industrial Supply Solutions",
       description: SEO_DESCRIPTION,
       isPartOf: {
         "@id": `${SITE_URL}/#website`,
@@ -203,18 +202,15 @@ export const Route = createFileRoute("/")({
       },
       {
         name: "robots",
-        content:
-          "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
       },
       {
         name: "googlebot",
-        content:
-          "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
       },
       {
         name: "bingbot",
-        content:
-          "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
       },
       {
         name: "language",
@@ -390,20 +386,44 @@ function Home() {
   const { data: catalog } = useQuery(getPublicCatalogQueryOptions());
   const activeCatalog = catalog ?? getFallbackCatalog();
   const categories = activeCatalog.categories;
-  const featuredCategories = categories.slice(0, 5);
   const [activeSlide, setActiveSlide] = useState(0);
+  const visibleCategoryCount = 3;
 
   useEffect(() => {
-    if (featuredCategories.length <= 1) return;
+    if (categories.length <= 1) return;
+
+    setActiveSlide((current) => (current >= categories.length ? 0 : current));
+  }, [categories.length]);
+
+  useEffect(() => {
+    if (categories.length <= 1) return;
 
     const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % featuredCategories.length);
+      setActiveSlide((current) => (current + 1) % categories.length);
     }, 4200);
 
     return () => window.clearInterval(timer);
-  }, [featuredCategories.length]);
+  }, [categories.length]);
 
-  const currentCategory = featuredCategories[activeSlide] ?? categories[0];
+  const currentCategory = categories[activeSlide] ?? categories[0];
+  const currentCategoryProducts = activeCatalog.products.filter(
+    (product) => product.category_slug === currentCategory?.slug,
+  );
+  const categorySlideCount = String(activeSlide + 1).padStart(2, "0");
+  const visibleCategoryCards = Array.from(
+    { length: Math.min(visibleCategoryCount, categories.length) },
+    (_, offset) => categories[(activeSlide + offset) % categories.length],
+  ).filter(Boolean);
+
+  const goToPreviousCategory = () => {
+    if (categories.length === 0) return;
+    setActiveSlide((current) => (current - 1 + categories.length) % categories.length);
+  };
+
+  const goToNextCategory = () => {
+    if (categories.length === 0) return;
+    setActiveSlide((current) => (current + 1) % categories.length);
+  };
 
   const stats = [
     { value: "16+", label: "Years in trade" },
@@ -414,7 +434,7 @@ function Home() {
 
   return (
     <>
-      <section className="relative -mt-20 overflow-hidden bg-[linear-gradient(135deg,_oklch(0.14_0.04_155),_oklch(0.2_0.05_157)_48%,_oklch(0.31_0.08_154))] text-primary-foreground">
+      <section className="relative -mt-20 overflow-hidden bg-[linear-gradient(135deg,_oklch(0.14_0.04_155),_oklch(0.2_0.05_157)_48%,_oklch(0.31_0.08_154))] text-primary-foreground lg:min-h-[100svh]">
         <div className="absolute inset-0">
           <img
             src={heroImg}
@@ -436,8 +456,8 @@ function Home() {
         <div className="absolute -left-24 top-28 h-80 w-80 rounded-full bg-emerald-300/20 blur-3xl" />
         <div className="absolute -right-24 bottom-10 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
 
-        <div className="relative container mx-auto px-6 pb-18 pt-30 md:pb-22 md:pt-34 lg:pb-26">
-          <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+        <div className="relative container mx-auto flex min-h-[calc(100svh-2rem)] items-center px-6 pb-12 pt-26 md:pb-14 md:pt-30 lg:min-h-[100svh] lg:pb-10 lg:pt-24">
+          <div className="grid w-full gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:items-center xl:gap-12">
             <motion.div
               initial={{ opacity: 0, y: 38 }}
               animate={{ opacity: 1, y: 0 }}
@@ -448,18 +468,17 @@ function Home() {
                 <BadgeCheck className="h-3.5 w-3.5 text-emerald-300" />
                 ISO 9001:2015 Certified Industrial Supply Partner
               </div>
-              <h1 className="mt-7 max-w-6xl text-5xl font-bold leading-[1.03] tracking-tight md:text-7xl xl:text-8xl">
+              <h1 className="mt-6 max-w-5xl text-[2.85rem] font-bold leading-[0.96] tracking-tight sm:text-[3.5rem] md:text-[4.6rem] lg:max-w-[10.5ch] lg:text-[5.1rem] xl:max-w-[11ch] xl:text-[5.8rem]">
                 FRP, Resin, Stone Pro & Industrial Materials Supplier.
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-white/78 md:text-xl">
-                Shravan Enterprises is a trusted industrial supplier in India for
-                FRP raw materials, resin and chemicals, fiberglass products,
-                stone-care systems, vacuum-process materials, FRP accessories,
-                packaging products and allied industrial consumables with dependable
-                quality and responsive service.
+              <p className="mt-5 max-w-2xl text-base leading-7 text-white/78 md:text-lg md:leading-8 xl:text-[1.15rem]">
+                Shravan Enterprises is a trusted industrial supplier in India for FRP raw materials,
+                resin and chemicals, fiberglass products, stone-Pro systems, vacuum-process
+                materials, FRP accessories, packaging products and allied industrial consumables
+                with dependable quality and responsive service.
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-7 flex flex-wrap gap-2.5">
                 {[
                   "FRP Raw Materials",
                   "Resin & Chemicals",
@@ -476,7 +495,7 @@ function Home() {
                 ))}
               </div>
 
-              <div className="mt-10 flex flex-wrap gap-4">
+              <div className="mt-8 flex flex-wrap gap-4">
                 <Link
                   to="/products"
                   className="group inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 font-semibold text-primary shadow-elegant transition hover:scale-[1.02]"
@@ -494,11 +513,11 @@ function Home() {
                 </Link>
               </div>
 
-              <div className="mt-14 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {stats.map((stat) => (
                   <div
                     key={stat.label}
-                    className="rounded-[1.6rem] border border-white/10 bg-white/8 px-5 py-5 backdrop-blur-sm"
+                    className="rounded-[1.45rem] border border-white/10 bg-white/8 px-5 py-4 backdrop-blur-sm"
                   >
                     <div className="text-3xl font-bold text-white">{stat.value}</div>
                     <div className="mt-1 text-sm text-white/60">{stat.label}</div>
@@ -514,46 +533,79 @@ function Home() {
               className="relative"
             >
               <div className="absolute inset-6 rounded-[2.2rem] border border-white/10 bg-white/6 backdrop-blur-xl" />
-              <div className="relative overflow-hidden rounded-[2.5rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.14),rgba(255,255,255,0.05))] p-5 shadow-2xl backdrop-blur-xl md:p-6">
-                <div className="rounded-[2rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(0,0,0,0.16))] p-5">
-                  <div className="flex items-center justify-between gap-4">
+              <div className="relative overflow-hidden rounded-[2.35rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.14),rgba(255,255,255,0.05))] p-5 shadow-2xl backdrop-blur-xl md:p-6">
+                <div className="rounded-[2rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(0,0,0,0.16))] p-5 md:p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <div className="text-[10px] uppercase tracking-[0.24em] text-white/50">
-                        Featured product category
+                        Category spotlight
                       </div>
                       <div className="mt-2 text-2xl font-bold text-white">
                         {currentCategory?.title ?? "Premium Industrial Solutions"}
                       </div>
                     </div>
-                    <div className="rounded-full border border-white/12 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/72">
-                      0{activeSlide + 1}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={goToPreviousCategory}
+                        className="grid h-11 w-11 place-items-center rounded-full border border-white/12 bg-white/10 text-white transition hover:bg-white/16"
+                        aria-label="Show previous category"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <div className="rounded-full border border-white/12 bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/72">
+                        {categorySlideCount} / {String(categories.length).padStart(2, "0")}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={goToNextCategory}
+                        className="grid h-11 w-11 place-items-center rounded-full border border-white/12 bg-white/10 text-white transition hover:bg-white/16"
+                        aria-label="Show next category"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="mt-5 overflow-hidden rounded-[1.6rem] border border-white/10">
-                    <img
-                      src={currentCategory?.image || heroImg}
-                      alt={`${currentCategory?.title ?? "Industrial category"} supplied by Shravan Enterprises`}
-                      className="h-72 w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
+                  {currentCategory ? (
+                    <Link
+                      to="/products/$slug"
+                      params={{ slug: currentCategory.slug }}
+                      className="mt-5 block overflow-hidden rounded-[1.6rem] border border-white/10"
+                      aria-label={`Open ${currentCategory.title} category page`}
+                    >
+                      <img
+                        src={currentCategory.image || heroImg}
+                        alt={`${currentCategory.title} supplied by Shravan Enterprises`}
+                        className="h-60 w-full object-cover transition duration-700 hover:scale-[1.03] md:h-64 lg:h-60 xl:h-64"
+                        loading="lazy"
+                      />
+                    </Link>
+                  ) : null}
 
-                  <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+                  <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
                     <div>
                       <p className="text-sm leading-7 text-white/74">
                         {currentCategory?.tagline ??
                           "A curated industrial category built for FRP, resin, stone pro, process supply and cleaner buying decisions."}
                       </p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {(currentCategory?.items ?? []).slice(0, 3).map((item) => (
+                      <div className="mt-4 flex flex-wrap gap-2.5">
+                        {(currentCategory?.items ?? []).slice(0, 4).map((item) => (
                           <span
                             key={item}
-                            className="rounded-full border border-white/12 bg-white/8 px-3 py-1 text-xs text-white/76"
+                            className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-xs text-white/76"
                           >
                             {item}
                           </span>
                         ))}
+                      </div>
+                      <div className="mt-5 flex flex-wrap gap-3 text-sm text-white/70">
+                        <span className="rounded-full border border-white/10 bg-black/12 px-3 py-1.5">
+                          {currentCategoryProducts.length} products
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-black/12 px-3 py-1.5">
+                          {(currentCategory?.items ?? []).length} item groups
+                        </span>
                       </div>
                     </div>
                     {currentCategory ? (
@@ -570,31 +622,53 @@ function Home() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                  {featuredCategories.map((category, index) => {
-                    const isActive = index === activeSlide;
+                <div className="mt-5">
+                  <div className="mb-3 flex items-center justify-between gap-4">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/54">
+                      Browse all categories
+                    </div>
+                    <Link
+                      to="/products"
+                      className="text-sm font-semibold text-white/76 transition hover:text-white"
+                    >
+                      View full catalog
+                    </Link>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {visibleCategoryCards.map((category) => {
+                      const categoryIndex = categories.findIndex(
+                        (item) => item.slug === category.slug,
+                      );
+                      const isActive = categoryIndex === activeSlide;
+                      const productCount = activeCatalog.products.filter(
+                        (product) => product.category_slug === category.slug,
+                      ).length;
 
-                    return (
-                      <button
-                        key={category.slug}
-                        type="button"
-                        onClick={() => setActiveSlide(index)}
-                        className={`rounded-[1.35rem] border px-4 py-4 text-left transition ${
-                          isActive
-                            ? "border-white/15 bg-white text-primary shadow-elegant"
-                            : "border-white/10 bg-white/8 text-white hover:bg-white/12"
-                        }`}
-                        aria-label={`Show ${category.title} category`}
-                      >
-                        <div className="text-[10px] uppercase tracking-[0.22em] opacity-60">
-                          {String(index + 1).padStart(2, "0")}
-                        </div>
-                        <div className="mt-2 text-sm font-semibold leading-5">
-                          {category.title}
-                        </div>
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={category.slug}
+                          type="button"
+                          onClick={() => setActiveSlide(categoryIndex)}
+                          className={`rounded-[1.35rem] border px-4 py-4 text-left transition ${
+                            isActive
+                              ? "border-white/15 bg-white text-primary shadow-elegant"
+                              : "border-white/10 bg-white/8 text-white hover:bg-white/12"
+                          }`}
+                          aria-label={`Show ${category.title} category`}
+                        >
+                          <div className="text-[10px] uppercase tracking-[0.22em] opacity-60">
+                            {String(categoryIndex + 1).padStart(2, "0")}
+                          </div>
+                          <div className="mt-2 text-sm font-semibold leading-5">
+                            {category.title}
+                          </div>
+                          <div className="mt-2 text-xs leading-5 opacity-70">
+                            {productCount} products
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -618,11 +692,11 @@ function Home() {
                 A modern industrial supplier for FRP, resin, stone Pro and process materials.
               </h2>
               <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                Shravan Enterprises supplies materials that support day-to-day
-                production, reinforcement, finishing, protection, vacuum processing,
-                packaging and industrial maintenance needs across multiple sectors.
-                Our focus is simple: better material selection, better service
-                response, better quality control and stronger long-term business trust.
+                Shravan Enterprises supplies materials that support day-to-day production,
+                reinforcement, finishing, protection, vacuum processing, packaging and industrial
+                maintenance needs across multiple sectors. Our focus is simple: better material
+                selection, better service response, better quality control and stronger long-term
+                business trust.
               </p>
               <div className="mt-8 space-y-4">
                 {[
@@ -745,7 +819,7 @@ function Home() {
           <SectionHeader
             eyebrow="Why Choose Shravan Enterprises"
             title="Professional industrial supply support, not just product availability."
-            description="We help buyers source reliable FRP materials, resin chemicals, stone-care products, vacuum-process materials and industrial consumables with better clarity, consistency and service."
+            description="We help buyers source reliable FRP materials, resin chemicals, stone-Pro products, vacuum-process materials and industrial consumables with better clarity, consistency and service."
           />
           <div className="mt-16 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {whyUs.map((item, index) => (
@@ -786,9 +860,7 @@ function Home() {
                 className="rounded-[2rem] border border-border bg-card p-8 shadow-card transition-smooth hover:shadow-elegant"
               >
                 <Quote className="h-8 w-8 text-primary/28" />
-                <p className="mt-5 text-base leading-8 text-foreground/90">
-                  “{testimonial.text}”
-                </p>
+                <p className="mt-5 text-base leading-8 text-foreground/90">“{testimonial.text}”</p>
                 <div className="mt-6 flex gap-1" aria-label="5 star client rating">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star key={i} className="h-4 w-4 fill-accent text-accent" />
@@ -819,9 +891,9 @@ function Home() {
                 Source FRP, resin, stone pro and industrial materials with more confidence.
               </h2>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-white/80">
-                Talk to Shravan Enterprises about your material requirements,
-                target categories, project timelines and bulk supply needs. We help
-                you move from enquiry to the right product path faster.
+                Talk to Shravan Enterprises about your material requirements, target categories,
+                project timelines and bulk supply needs. We help you move from enquiry to the right
+                product path faster.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
