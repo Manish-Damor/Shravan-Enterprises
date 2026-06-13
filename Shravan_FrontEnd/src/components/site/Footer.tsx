@@ -74,9 +74,29 @@ export function Footer() {
         </div>
       </div>
       <div className="relative border-t border-white/10">
-        <div className="container mx-auto px-6 py-5 text-center text-xs text-white/60">
-          © {new Date().getFullYear()} Shravan Enterprises. All rights reserved. · ISO 9001:2015 Certified Company
-        </div>
+        <div className="container mx-auto px-6 py-6 text-center">
+  <p className="text-xs text-white/60">
+    © {new Date().getFullYear()} Shravan Enterprises. All rights reserved. · ISO 9001:2015 Certified Company
+  </p>
+
+  <div className="mt-3 flex items-center justify-center gap-2 text-xs text-white/50">
+    <span className="h-px w-10 bg-gradient-to-r from-transparent to-orange-400/60"></span>
+
+    <span>
+      Website Designed & Developed by{" "}
+      <a
+        href="https://www.pavitrasoft.in/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-semibold text-orange-400 hover:text-orange-300 transition-all duration-300 hover:tracking-wide"
+      >
+        PavitraSoft
+      </a>
+    </span>
+
+    <span className="h-px w-10 bg-gradient-to-l from-transparent to-orange-400/60"></span>
+  </div>
+</div>
       </div>
     </footer>
   );

@@ -40,7 +40,7 @@ const defaultCategories = [
   "Resin & Chemicals",
   "Vacuum Infusion",
   "FRP Accessories",
-  "Stone Care & Surface",
+  "Stone Pro & Surface",
   "Water Treatment Chemicals",
   "Packing Materials",
   "Safety Items",

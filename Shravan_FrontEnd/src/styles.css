@@ -63,6 +63,9 @@
 
 :root {
   --radius: 0.75rem;
+  --navbar-height: 5rem;
+  --site-max-width: 1700px;
+  --site-width: 96%;
   /* Shravan Enterprises — Luxury Industrial Green */
   --background: oklch(0.99 0.005 150);
   --foreground: oklch(0.18 0.04 155);
@@ -168,6 +171,12 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  html,
+  body,
+  #root {
+    overflow-x: clip;
+  }
+
   h1,
   h2,
   h3,
@@ -217,6 +226,17 @@
     box-shadow:
       0 0 0 1px oklch(0.55 0.17 152 / 0.3),
       0 0 40px -8px oklch(0.55 0.17 152 / 0.5);
+  }
+  .site-container {
+    width: var(--site-width);
+    max-width: var(--site-max-width);
+    margin-inline: auto;
+  }
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 }
 

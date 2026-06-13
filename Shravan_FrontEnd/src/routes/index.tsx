@@ -4,10 +4,14 @@ import {
   ArrowRight,
   Award,
   BadgeCheck,
+  Boxes,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Factory,
+  Handshake,
+  Layers3,
+  Map,
   Quote,
   Shield,
   Sparkles,
@@ -387,7 +391,7 @@ function Home() {
   const activeCatalog = catalog ?? getFallbackCatalog();
   const categories = activeCatalog.categories;
   const [activeSlide, setActiveSlide] = useState(0);
-  const visibleCategoryCount = 3;
+  const [visibleCategoryCount, setVisibleCategoryCount] = useState(4);
 
   useEffect(() => {
     if (categories.length <= 1) return;
@@ -404,6 +408,28 @@ function Home() {
 
     return () => window.clearInterval(timer);
   }, [categories.length]);
+
+  useEffect(() => {
+    const syncVisibleCategoryCount = () => {
+      const width = window.innerWidth;
+      if (width < 768) {
+        setVisibleCategoryCount(1);
+        return;
+      }
+
+      if (width < 1280) {
+        setVisibleCategoryCount(3);
+        return;
+      }
+
+      setVisibleCategoryCount(4);
+    };
+
+    syncVisibleCategoryCount();
+    window.addEventListener("resize", syncVisibleCategoryCount);
+
+    return () => window.removeEventListener("resize", syncVisibleCategoryCount);
+  }, []);
 
   const currentCategory = categories[activeSlide] ?? categories[0];
   const currentCategoryProducts = activeCatalog.products.filter(
@@ -426,15 +452,15 @@ function Home() {
   };
 
   const stats = [
-    { value: "16+", label: "Years in trade" },
-    { value: `${activeCatalog.counts.categories}+`, label: "Active categories" },
-    { value: `${activeCatalog.counts.products}+`, label: "Published products" },
-    { value: "Pan-India", label: "Industrial support" },
+    { value: "16+", label: "Years in trade", icon: Handshake },
+    { value: `${activeCatalog.counts.categories}+`, label: "Active categories", icon: Layers3 },
+    { value: `${activeCatalog.counts.products}+`, label: "Published products", icon: Boxes },
+    { value: "Pan-India", label: "Industrial support", icon: Map },
   ];
 
   return (
     <>
-      <section className="relative -mt-20 overflow-hidden bg-[linear-gradient(135deg,_oklch(0.14_0.04_155),_oklch(0.2_0.05_157)_48%,_oklch(0.31_0.08_154))] text-primary-foreground lg:min-h-[100svh]">
+      <section className="relative -mt-[var(--navbar-height)] overflow-hidden bg-[linear-gradient(135deg,_oklch(0.14_0.04_155),_oklch(0.2_0.05_157)_48%,_oklch(0.31_0.08_154))] text-primary-foreground">
         <div className="absolute inset-0">
           <img
             src={heroImg}
@@ -456,22 +482,22 @@ function Home() {
         <div className="absolute -left-24 top-28 h-80 w-80 rounded-full bg-emerald-300/20 blur-3xl" />
         <div className="absolute -right-24 bottom-10 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
 
-        <div className="relative container mx-auto flex min-h-[calc(100svh-2rem)] items-center px-6 pb-12 pt-26 md:pb-14 md:pt-30 lg:min-h-[100svh] lg:pb-10 lg:pt-24">
-          <div className="grid w-full gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:items-center xl:gap-12">
+        <div className="relative site-container flex min-h-[calc(100svh-var(--navbar-height))] items-center px-1 pb-10 pt-[calc(var(--navbar-height)+24px)] md:pb-12 md:pt-[calc(var(--navbar-height)+32px)] lg:pt-[calc(var(--navbar-height)+20px)]">
+          <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(620px,0.92fr)] lg:items-start lg:gap-10 xl:gap-12">
             <motion.div
               initial={{ opacity: 0, y: 38 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-              className="max-w-4xl"
+              className="max-w-[49rem] pt-1 lg:pt-10"
             >
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] backdrop-blur-sm">
                 <BadgeCheck className="h-3.5 w-3.5 text-emerald-300" />
                 ISO 9001:2015 Certified Industrial Supply Partner
               </div>
-              <h1 className="mt-6 max-w-5xl text-[2.85rem] font-bold leading-[0.96] tracking-tight sm:text-[3.5rem] md:text-[4.6rem] lg:max-w-[10.5ch] lg:text-[5.1rem] xl:max-w-[11ch] xl:text-[5.8rem]">
+              <h1 className="mt-6 max-w-[11ch] text-[clamp(4rem,4.8vw,5.8rem)] font-bold leading-[0.92] tracking-[-0.03em]">
                 FRP, Resin, Stone Pro & Industrial Materials Supplier.
               </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-white/78 md:text-lg md:leading-8 xl:text-[1.15rem]">
+              <p className="mt-6 max-w-[650px] text-[1.05rem] font-normal leading-[1.75] text-white/80 md:text-[1.12rem] xl:text-[1.18rem] xl:leading-[1.8]">
                 Shravan Enterprises is a trusted industrial supplier in India for FRP raw materials,
                 resin and chemicals, fiberglass products, stone-Pro systems, vacuum-process
                 materials, FRP accessories, packaging products and allied industrial consumables
@@ -513,14 +539,19 @@ function Home() {
                 </Link>
               </div>
 
-              <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {stats.map((stat) => (
                   <div
                     key={stat.label}
-                    className="rounded-[1.45rem] border border-white/10 bg-white/8 px-5 py-4 backdrop-blur-sm"
+                    className="glass-panel flex min-h-[164px] flex-col justify-between rounded-[1.35rem] px-4 py-4 transition hover:-translate-y-0.5 hover:bg-white/10"
                   >
-                    <div className="text-3xl font-bold text-white">{stat.value}</div>
-                    <div className="mt-1 text-sm text-white/60">{stat.label}</div>
+                    <div className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/6 text-emerald-200">
+                      <stat.icon className="h-5 w-5" />
+                    </div>
+                    <div className="mt-5 text-[1.7rem] font-bold leading-none text-white">
+                      {stat.value}
+                    </div>
+                    <div className="mt-2 text-[0.82rem] text-white/60">{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -530,76 +561,76 @@ function Home() {
               initial={{ opacity: 0, y: 32 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-              className="relative"
+              className="relative lg:pt-10"
             >
               <div className="absolute inset-6 rounded-[2.2rem] border border-white/10 bg-white/6 backdrop-blur-xl" />
-              <div className="relative overflow-hidden rounded-[2.35rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.14),rgba(255,255,255,0.05))] p-5 shadow-2xl backdrop-blur-xl md:p-6">
-                <div className="rounded-[2rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(0,0,0,0.16))] p-5 md:p-6">
+              <div className="relative overflow-hidden rounded-[2.35rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.14),rgba(255,255,255,0.05))] p-4 shadow-2xl backdrop-blur-xl md:p-5">
+                <div className="glass-panel grid min-h-[642px] grid-rows-[auto_auto_1fr_auto] rounded-[2rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(0,0,0,0.16))] p-4 md:p-5">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                       <div className="text-[10px] uppercase tracking-[0.24em] text-white/50">
                         Category spotlight
                       </div>
-                      <div className="mt-2 text-2xl font-bold text-white">
+                      <div className="mt-2 text-[1.8rem] font-bold leading-tight text-white">
                         {currentCategory?.title ?? "Premium Industrial Solutions"}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={goToPreviousCategory}
-                        className="grid h-11 w-11 place-items-center rounded-full border border-white/12 bg-white/10 text-white transition hover:bg-white/16"
-                        aria-label="Show previous category"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </button>
-                      <div className="rounded-full border border-white/12 bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/72">
-                        {categorySlideCount} / {String(categories.length).padStart(2, "0")}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={goToNextCategory}
-                        className="grid h-11 w-11 place-items-center rounded-full border border-white/12 bg-white/10 text-white transition hover:bg-white/16"
-                        aria-label="Show next category"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
+                    <div className="rounded-full border border-white/12 bg-white/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/72">
+                      {categorySlideCount} / {String(categories.length).padStart(2, "0")}
                     </div>
                   </div>
 
-                  {currentCategory ? (
-                    <Link
-                      to="/products/$slug"
-                      params={{ slug: currentCategory.slug }}
-                      className="mt-5 block overflow-hidden rounded-[1.6rem] border border-white/10"
-                      aria-label={`Open ${currentCategory.title} category page`}
+                  <div className="relative mt-4">
+                    {currentCategory ? (
+                      <Link
+                        to="/products/$slug"
+                        params={{ slug: currentCategory.slug }}
+                        className="block overflow-hidden rounded-[1.55rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(240,247,242,0.94))]"
+                        aria-label={`Open ${currentCategory.title} category page`}
+                      >
+                        <img
+                          src={currentCategory.image || heroImg}
+                          alt={`${currentCategory.title} supplied by Shravan Enterprises`}
+                          className="h-60 w-full object-contain object-center p-4 transition duration-500 md:h-64 lg:h-[270px]"
+                          loading="lazy"
+                        />
+                      </Link>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={goToPreviousCategory}
+                      className="glass-panel absolute left-4 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-white shadow-[0_0_30px_-10px_rgba(92,230,153,0.65)] transition hover:scale-105 hover:bg-white/14"
+                      aria-label="Show previous category"
                     >
-                      <img
-                        src={currentCategory.image || heroImg}
-                        alt={`${currentCategory.title} supplied by Shravan Enterprises`}
-                        className="h-60 w-full object-cover transition duration-700 hover:scale-[1.03] md:h-64 lg:h-60 xl:h-64"
-                        loading="lazy"
-                      />
-                    </Link>
-                  ) : null}
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goToNextCategory}
+                      className="glass-panel absolute right-4 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-white shadow-[0_0_30px_-10px_rgba(92,230,153,0.65)] transition hover:scale-105 hover:bg-white/14"
+                      aria-label="Show next category"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
 
-                  <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
+                  <div className="mt-4 grid content-start gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                     <div>
-                      <p className="text-sm leading-7 text-white/74">
+                      <p className="min-h-[84px] text-sm leading-6 text-white/74 md:text-[0.95rem]">
                         {currentCategory?.tagline ??
                           "A curated industrial category built for FRP, resin, stone pro, process supply and cleaner buying decisions."}
                       </p>
-                      <div className="mt-4 flex flex-wrap gap-2.5">
+                      <div className="mt-3 flex min-h-[76px] flex-wrap content-start gap-2">
                         {(currentCategory?.items ?? []).slice(0, 4).map((item) => (
                           <span
                             key={item}
-                            className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-xs text-white/76"
+                            className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[0.72rem] text-white/76"
                           >
                             {item}
                           </span>
                         ))}
                       </div>
-                      <div className="mt-5 flex flex-wrap gap-3 text-sm text-white/70">
+                      <div className="mt-4 flex flex-wrap gap-2.5 text-sm text-white/70">
                         <span className="rounded-full border border-white/10 bg-black/12 px-3 py-1.5">
                           {currentCategoryProducts.length} products
                         </span>
@@ -623,18 +654,28 @@ function Home() {
                 </div>
 
                 <div className="mt-5">
-                  <div className="mb-3 flex items-center justify-between gap-4">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/54">
+                  <div className="mb-3 grid grid-cols-[auto_1fr_auto] items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={goToPreviousCategory}
+                      className="glass-panel hidden h-11 w-11 shrink-0 place-items-center rounded-full text-white transition hover:scale-105 hover:bg-white/14 md:grid"
+                      aria-label="Scroll category cards left"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <div className="text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-white/54">
                       Browse all categories
                     </div>
-                    <Link
-                      to="/products"
-                      className="text-sm font-semibold text-white/76 transition hover:text-white"
+                    <button
+                      type="button"
+                      onClick={goToNextCategory}
+                      className="glass-panel hidden h-11 w-11 shrink-0 place-items-center rounded-full text-white transition hover:scale-105 hover:bg-white/14 md:grid"
+                      aria-label="Scroll category cards right"
                     >
-                      View full catalog
-                    </Link>
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-4">
                     {visibleCategoryCards.map((category) => {
                       const categoryIndex = categories.findIndex(
                         (item) => item.slug === category.slug,
@@ -649,7 +690,7 @@ function Home() {
                           key={category.slug}
                           type="button"
                           onClick={() => setActiveSlide(categoryIndex)}
-                          className={`rounded-[1.35rem] border px-4 py-4 text-left transition ${
+                          className={`min-h-[108px] rounded-[1.35rem] border px-4 py-4 text-left transition ${
                             isActive
                               ? "border-white/15 bg-white text-primary shadow-elegant"
                               : "border-white/10 bg-white/8 text-white hover:bg-white/12"
@@ -669,6 +710,14 @@ function Home() {
                       );
                     })}
                   </div>
+                  <div className="mt-3 text-center">
+                    <Link
+                      to="/products"
+                      className="text-sm font-semibold text-white/78 transition hover:text-white"
+                    >
+                      View full catalog
+                    </Link>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -677,7 +726,7 @@ function Home() {
       </section>
 
       <section className="relative py-24 md:py-28">
-        <div className="container mx-auto px-6">
+        <div className="site-container px-1">
           <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <motion.div
               initial={{ opacity: 0, x: -28 }}
@@ -749,7 +798,7 @@ function Home() {
       </section>
 
       <section className="relative bg-secondary/30 py-24 md:py-28">
-        <div className="container mx-auto px-6">
+        <div className="site-container px-1">
           <SectionHeader
             eyebrow="Product Range"
             title="Category-led industrial supply for faster buying decisions."
@@ -815,7 +864,7 @@ function Home() {
       </section>
 
       <section className="relative py-24 md:py-28">
-        <div className="container mx-auto px-6">
+        <div className="site-container px-1">
           <SectionHeader
             eyebrow="Why Choose Shravan Enterprises"
             title="Professional industrial supply support, not just product availability."
@@ -843,7 +892,7 @@ function Home() {
       </section>
 
       <section className="relative bg-secondary/30 py-24 md:py-28">
-        <div className="container mx-auto px-6">
+        <div className="site-container px-1">
           <SectionHeader
             eyebrow="Client Voice"
             title="Confidence built through repeat business."
@@ -877,7 +926,7 @@ function Home() {
       </section>
 
       <section className="relative py-24">
-        <div className="container mx-auto px-6">
+        <div className="site-container px-1">
           <div className="relative overflow-hidden rounded-[2.8rem] border border-border/70 px-8 py-14 text-primary-foreground shadow-elegant md:px-14 md:py-18">
             <div className="absolute inset-0 gradient-hero" />
             <div className="absolute -right-16 top-0 h-72 w-72 rounded-full bg-white/12 blur-3xl" />

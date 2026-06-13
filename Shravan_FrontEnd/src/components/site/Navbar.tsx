@@ -147,10 +147,10 @@ export function Navbar() {
   const useHeroNavbar = isHomePage && !scrolled;
 
   const headerClassName = useHeroNavbar
-    ? "border-b border-white/10 bg-[linear-gradient(180deg,rgba(6,32,19,0.74),rgba(6,32,19,0.42)_58%,rgba(6,32,19,0))] py-4 text-white"
+    ? "border-b border-white/10 bg-[linear-gradient(180deg,rgba(6,32,19,0.74),rgba(6,32,19,0.42)_58%,rgba(6,32,19,0))] text-white"
     : scrolled
-      ? "border-b border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(247,251,248,0.86))] py-3 text-foreground shadow-[0_20px_60px_-28px_rgba(16,81,50,0.28)] backdrop-blur-2xl"
-      : "border-b border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(255,255,255,0.62))] py-4 text-foreground shadow-[0_18px_45px_-35px_rgba(16,81,50,0.22)] backdrop-blur-xl";
+      ? "border-b border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(247,251,248,0.86))] text-foreground shadow-[0_20px_60px_-28px_rgba(16,81,50,0.28)] backdrop-blur-2xl"
+      : "border-b border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(255,255,255,0.62))] text-foreground shadow-[0_18px_45px_-35px_rgba(16,81,50,0.22)] backdrop-blur-xl";
 
   const navLinkClassName = useHeroNavbar
     ? "relative rounded-full px-4 py-2 text-sm font-medium text-white/78 transition-smooth hover:bg-white/8 hover:text-white after:absolute after:bottom-1 after:left-1/2 after:h-0.5 after:w-0 after:-translate-x-1/2 after:bg-emerald-300 after:transition-all after:content-[''] hover:after:w-6"
@@ -182,8 +182,8 @@ export function Navbar() {
 
   return (
     <header className={`fixed top-0 inset-x-0 z-50 transition-smooth ${headerClassName}`}>
-      <div className="container mx-auto px-6">
-        <div className="flex items-center justify-between gap-4">
+      <div className="site-container px-1">
+        <div className="flex h-[var(--navbar-height)] items-center justify-between gap-4">
           <Link to="/" className="group flex min-w-0 items-center">
             <BrandLogo
               className="transition-smooth group-hover:scale-[1.02]"
@@ -192,7 +192,7 @@ export function Navbar() {
                   ? "border-white/12 bg-white/98 shadow-[0_18px_42px_-24px_rgba(0,0,0,0.55)]"
                   : "border-primary/8 bg-white/96"
               } px-0.5`}
-              imageClassName="h-10 scale-[1.18] sm:h-11 md:h-[2.95rem]"
+              imageClassName="h-9 scale-[1.15] sm:h-10 md:h-[2.75rem]"
               copyClassName="min-w-0"
               textClassName={`${useHeroNavbar ? "text-white" : "text-foreground"} text-[0.95rem] sm:text-base`}
               subtitleClassName={`${useHeroNavbar ? "text-white/58" : "text-muted-foreground"} text-[9px] sm:text-[10px]`}
@@ -442,7 +442,7 @@ export function Navbar() {
 
           <Link
             to="/contact"
-            className="hidden lg:inline-flex items-center gap-2 rounded-full gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-smooth hover:scale-105"
+            className="hidden lg:inline-flex items-center gap-2 rounded-full gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-glow transition-smooth hover:scale-[1.03] hover:shadow-[0_0_40px_-8px_rgba(88,214,141,0.58)]"
           >
             Get a Quote
           </Link>
