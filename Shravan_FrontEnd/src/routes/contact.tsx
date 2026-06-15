@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@/lib/tanstack-router-compat";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Clock, MessageCircle } from "lucide-react";
 import { useState } from "react";

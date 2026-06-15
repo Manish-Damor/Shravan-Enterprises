@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@/lib/tanstack-router-compat";
 import ProductPage from "@/components/product/ProductPage";
 import { fetchPublicCatalog } from "@/lib/catalog";
 import {

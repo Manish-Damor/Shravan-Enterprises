@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, ChevronDown, Menu, Package2, Sparkles, X } from "lucide-react";
 import { getFallbackCatalog, getPublicCatalogQueryOptions } from "@/lib/catalog";
+import { Link, usePathname } from "@/lib/router";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BrandLogo } from "./BrandLogo";
 
@@ -61,9 +61,7 @@ function getPreferredCategorySlug(categories: MenuCategory[]) {
 }
 
 export function Navbar() {
-  const pathname = useRouterState({
-    select: (state) => state.location.pathname,
-  });
+  const pathname = usePathname();
   const { data: catalog } = useQuery(getPublicCatalogQueryOptions());
 
   const fallbackCatalog = getFallbackCatalog();

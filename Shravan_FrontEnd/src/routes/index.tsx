@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@/lib/tanstack-router-compat";
 import { motion } from "framer-motion";
 import {
   ArrowRight,

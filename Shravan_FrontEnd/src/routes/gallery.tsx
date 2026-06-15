@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@/lib/tanstack-router-compat";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Expand, Images, Layers3, Sparkles, X } from "lucide-react";

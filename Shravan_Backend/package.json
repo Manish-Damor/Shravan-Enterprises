@@ -9,6 +9,9 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "start": "npm run build && node scripts/ensure-preview-server.mjs && vite preview --host 0.0.0.0 --port 5000",
+    "start:backend": "node backend-server.mjs",
+    "build:backend": "npm run build",
     "format": "prettier --write ."
   },
   "dependencies": {

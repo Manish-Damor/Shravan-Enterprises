@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
+import { Link } from "@/lib/router";
 import type { NormalizedCategory } from "@/lib/product-normalizer";
 
 export default function CategoryNav({

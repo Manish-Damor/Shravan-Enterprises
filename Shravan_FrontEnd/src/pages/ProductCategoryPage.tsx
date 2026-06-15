@@ -1,4 +1,5 @@
-import { createFileRoute, Link, notFound } from "@/lib/tanstack-router-compat";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -10,66 +11,51 @@ import {
   PackageSearch,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useParams } from "react-router-dom";
+import { Link } from "@/lib/router";
 import { SectionHeader } from "@/components/site/SectionHeader";
-import { fetchPublicCatalog } from "@/lib/catalog";
+import { getPublicCatalogQueryOptions } from "@/lib/catalog";
 import { normalizeCategory, normalizeProduct } from "@/lib/product-normalizer";
 
-export const Route = createFileRoute("/products/$slug")({
-  loader: async ({ params }) => {
-    const catalog = await fetchPublicCatalog();
-    const categories = (catalog.categories ?? [])
+export default function ProductCategoryPage() {
+  const { slug = "" } = useParams();
+  const { data: catalog, isLoading } = useQuery(getPublicCatalogQueryOptions());
+
+  const data = useMemo(() => {
+    const categories = (catalog?.categories ?? [])
       .map(normalizeCategory)
       .filter((category): category is NonNullable<typeof category> => category !== null);
-    const products = (catalog.products ?? [])
+    const products = (catalog?.products ?? [])
       .map(normalizeProduct)
       .filter((product): product is NonNullable<typeof product> => product !== null);
-
-    const category = categories.find((item) => item.slug === params.slug);
-    if (!category) throw notFound();
-
-    const items = products.filter((product) => product.category_slug === category.slug);
+    const category = categories.find((item) => item.slug === slug) ?? null;
+    const items = category
+      ? products.filter((product) => product.category_slug === category.slug)
+      : [];
     const featured = items.filter((product) => product.featured).slice(0, 3);
 
     return { category, categories, items, featured };
-  },
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: `${loaderData?.category.title ?? "Category"} - Shravan Enterprises`,
-      },
-      {
-        name: "description",
-        content:
-          loaderData?.category.tagline ??
-          "Explore product previews and detailed specifications by category.",
-      },
-      {
-        property: "og:title",
-        content: `${loaderData?.category.title ?? "Category"} - Shravan Enterprises`,
-      },
-      {
-        property: "og:description",
-        content:
-          loaderData?.category.tagline ??
-          "Explore product previews and detailed specifications by category.",
-      },
-      {
-        property: "og:image",
-        content: loaderData?.category.image ?? "",
-      },
-    ],
-    links: [
-      {
-        rel: "canonical",
-        href: `/products/${loaderData?.category.slug ?? ""}`,
-      },
-    ],
-  }),
-  component: ProductCategory,
-});
+  }, [catalog, slug]);
 
-function ProductCategory() {
-  const { category, categories, items, featured } = Route.useLoaderData();
+  if (isLoading) {
+    return <div className="container mx-auto px-6 py-32 text-center">Loading category...</div>;
+  }
+
+  if (!data.category) {
+    return (
+      <div className="container mx-auto px-6 py-32 text-center">
+        <h1 className="text-4xl font-bold">Category not found</h1>
+        <p className="mt-3 text-muted-foreground">
+          The requested category could not be found in the public catalog.
+        </p>
+        <Link to="/products" className="mt-6 inline-block font-semibold text-primary">
+          Browse categories
+        </Link>
+      </div>
+    );
+  }
+
+  const { category, categories, items, featured } = data;
   const relatedCategories = categories.filter((item) => item.slug !== category.slug).slice(0, 4);
   const highlightedProducts = featured.length > 0 ? featured : items.slice(0, 3);
 
@@ -148,21 +134,9 @@ function ProductCategory() {
               </div>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                <StatCard
-                  icon={<Boxes className="h-5 w-5" />}
-                  label="Products"
-                  value={String(items.length)}
-                />
-                <StatCard
-                  icon={<PackageSearch className="h-5 w-5" />}
-                  label="Featured"
-                  value={String(featured.length)}
-                />
-                <StatCard
-                  icon={<BadgeCheck className="h-5 w-5" />}
-                  label="Item Lines"
-                  value={String(category.items?.length ?? 0)}
-                />
+                <StatCard icon={<Boxes className="h-5 w-5" />} label="Products" value={String(items.length)} />
+                <StatCard icon={<PackageSearch className="h-5 w-5" />} label="Featured" value={String(featured.length)} />
+                <StatCard icon={<BadgeCheck className="h-5 w-5" />} label="Item Lines" value={String(category.items?.length ?? 0)} />
               </div>
             </div>
 

@@ -1,9 +1,23 @@
 const AUTH_TOKEN_KEY = "wwk_auth_token";
 let ADMIN_API_BASE_URL = import.meta.env.VITE_ADMIN_API_URL?.trim() ?? import.meta.env.VITE_ADMIN_API_BASE_URL?.trim() ?? import.meta.env.VITE_API_URL?.trim() ?? import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ?? "";
+const IIS_BACKEND_PORT = "8083";
+const DEV_FRONTEND_PORTS = new Set(["8094", "8095"]);
 
 // During local development talk directly to the backend API server.
 if (import.meta.env.DEV && !ADMIN_API_BASE_URL) {
   ADMIN_API_BASE_URL = "http://localhost:8082";
+}
+
+function getResolvedAdminApiBaseUrl() {
+  if (ADMIN_API_BASE_URL) return ADMIN_API_BASE_URL;
+  if (typeof window === "undefined") return "";
+
+  const { protocol, hostname, port } = window.location;
+  if (!hostname) return "";
+
+  const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(hostname);
+  const backendPort = isLocalHost && DEV_FRONTEND_PORTS.has(port) ? "8082" : IIS_BACKEND_PORT;
+  return `${protocol}//${hostname}:${backendPort}`;
 }
 
 export function getAuthToken() {
@@ -43,8 +57,9 @@ function normalizeHeaders(headers: HeadersInit | undefined) {
 }
 
 function buildApiUrl(input: RequestInfo) {
-  if (typeof input !== "string" || !ADMIN_API_BASE_URL) return input;
-  return new URL(input, ADMIN_API_BASE_URL).toString();
+  const apiBaseUrl = getResolvedAdminApiBaseUrl();
+  if (typeof input !== "string" || !apiBaseUrl) return input;
+  return new URL(input, apiBaseUrl).toString();
 }
 
 function formatNetworkError(input: RequestInfo, error: unknown) {
@@ -72,6 +87,33 @@ function parseResponseData(text: string, contentType: string) {
   }
 
   return text;
+}
+
+function absolutizeApiAsset(value: string) {
+  if (!value.startsWith("/api/")) return value;
+  const apiBaseUrl = getResolvedAdminApiBaseUrl();
+  if (!apiBaseUrl) return value;
+  return new URL(value, apiBaseUrl).toString();
+}
+
+function normalizeApiPayload<T>(value: T): T {
+  if (typeof value === "string") {
+    return absolutizeApiAsset(value) as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeApiPayload(entry)) as T;
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const normalized: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    normalized[key] = normalizeApiPayload(entry);
+  }
+  return normalized as T;
 }
 
 export async function apiFetch<T = unknown>(input: RequestInfo, init?: RequestInit): Promise<T> {
@@ -114,5 +156,5 @@ export async function apiFetch<T = unknown>(input: RequestInfo, init?: RequestIn
     throw new Error(data.slice(0, 200));
   }
 
-  return data as T;
+  return normalizeApiPayload(data as T);
 }

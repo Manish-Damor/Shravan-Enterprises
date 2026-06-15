@@ -1,6 +1,6 @@
-import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { ChevronRight, Download, MessageSquare, Package2 } from "lucide-react";
+import { Link } from "@/lib/router";
 import type {
   NormalizedCategory,
   NormalizedProduct,

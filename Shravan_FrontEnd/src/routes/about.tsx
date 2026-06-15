@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@/lib/tanstack-router-compat";
 import { motion } from "framer-motion";
 import { Target, Eye, Award, Users, TrendingUp, Heart } from "lucide-react";
 import { PageHero } from "@/components/site/PageHero";

@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 import { UploadCloud, X } from "lucide-react";
 
 type MediaValue = {
@@ -23,14 +24,11 @@ async function fileToMediaValue(file: File): Promise<MediaValue> {
   const base64 = parts[1] ?? "";
 
   try {
-    const res = await fetch("/api/uploads", {
+    const payload = await apiFetch<{ url?: string; path?: string; id?: string; insertedId?: string }>("/api/uploads", {
       method: "POST",
-      headers: { "content-type": "application/json" },
       body: JSON.stringify({ filename: file.name, contentType: file.type || "application/octet-stream", data: base64 }),
     });
-    if (!res.ok) throw new Error("Upload failed");
-    const payload = await res.json();
-    const url = payload.url || payload.path || payload.id ? `/api/uploads/${payload.id || payload.insertedId || payload.path}` : dataUrl;
+    const url = payload.url || payload.path || payload.id ? payload.url || `/api/uploads/${payload.id || payload.insertedId || payload.path}` : dataUrl;
     return { name: file.name, type: file.type, url };
   } catch (err) {
     // fallback to dataUrl so UX still works offline

@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import { Link } from "@/lib/router";
 import type { NormalizedProduct } from "@/lib/product-normalizer";
 
 export default function RelatedProducts({

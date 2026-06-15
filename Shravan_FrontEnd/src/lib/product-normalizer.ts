@@ -7,6 +7,9 @@ type MediaLike =
       value?: unknown;
     };
 
+const IIS_BACKEND_PORT = "8083";
+const DEV_FRONTEND_PORTS = new Set(["8094", "8095"]);
+
 type FileLike = {
   key?: unknown;
   url?: unknown;
@@ -70,6 +73,32 @@ function asString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function getApiBaseUrl() {
+  const configured =
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL?.trim()) ||
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_PUBLIC_API_BASE_URL?.trim()) ||
+    "";
+  if (configured) return configured;
+
+  if (typeof window !== "undefined") {
+    const { protocol, hostname, port } = window.location;
+    if (hostname) {
+      const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(hostname);
+      const backendPort = isLocalHost && DEV_FRONTEND_PORTS.has(port) ? "8082" : IIS_BACKEND_PORT;
+      return `${protocol}//${hostname}:${backendPort}`;
+    }
+  }
+
+  return "";
+}
+
+function resolveMediaUrl(url: string) {
+  if (!url.startsWith("/")) return url;
+  const apiBaseUrl = getApiBaseUrl();
+  if (!apiBaseUrl) return url;
+  return new URL(url, apiBaseUrl).toString();
+}
+
 function asStringArray(value: unknown) {
   if (typeof value === "string") {
     return value
@@ -102,13 +131,13 @@ function readMediaUrl(value: MediaLike) {
   if (!value) return null;
   if (typeof value === "string") {
     const trimmed = value.trim();
-    return trimmed || null;
+    return trimmed ? resolveMediaUrl(trimmed) : null;
   }
   if (typeof value === "object") {
     const url = asString(value.url);
-    if (url) return url;
+    if (url) return resolveMediaUrl(url);
     const fallback = asString(value.value);
-    return fallback || null;
+    return fallback ? resolveMediaUrl(fallback) : null;
   }
   return null;
 }

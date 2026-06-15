@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin } from "lucide-react";
 import { getFallbackCatalog, getPublicCatalogQueryOptions } from "@/lib/catalog";
+import { Link } from "@/lib/router";
 import { BrandLogo } from "./BrandLogo";
 
 export function Footer() {

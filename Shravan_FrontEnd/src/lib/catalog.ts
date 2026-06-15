@@ -72,7 +72,9 @@ export type BrochureEnquiryInput = {
   email: string;
 };
 
-const LOCAL_API_PORT_CANDIDATES = ["8082"] as const;
+const LOCAL_API_PORT_CANDIDATES = ["8082", "8083"] as const;
+const IIS_BACKEND_PORT = "8083";
+const DEV_FRONTEND_PORTS = new Set(["8094", "8095"]);
 
 const fallbackBySlug = new Map(fallbackCategories.map((category) => [category.slug, category]));
 
@@ -80,6 +82,21 @@ function toAbsoluteApiUrl(path: string) {
   const apiBaseUrl = getConfiguredApiBaseUrl();
   if (!apiBaseUrl) return null;
   return new URL(path, apiBaseUrl).toString();
+}
+
+function getWindowDerivedApiBaseUrl() {
+  if (typeof window === "undefined") return "";
+
+  const { protocol, hostname, port } = window.location;
+  if (!hostname) return "";
+
+  const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(hostname);
+  if (isLocalHost) {
+    const backendPort = DEV_FRONTEND_PORTS.has(port) ? "8082" : IIS_BACKEND_PORT;
+    return `${protocol}//${hostname}:${backendPort}`;
+  }
+
+  return `${protocol}//${hostname}:${IIS_BACKEND_PORT}`;
 }
 
 function readProcessEnv(name: string) {
@@ -103,6 +120,9 @@ function getConfiguredApiBaseUrl() {
     "";
 
   if (configured) return configured;
+
+  const derived = getWindowDerivedApiBaseUrl();
+  if (derived) return derived;
 
   // During SSR in local development, there is no browser origin or Vite proxy.
   if (import.meta.env.DEV) {
@@ -151,15 +171,17 @@ function fallbackCategoryImage(slug: string) {
 function readMediaUrl(value: unknown) {
   if (typeof value === "string") {
     const trimmed = value.trim();
-    return trimmed || null;
+    if (!trimmed) return null;
+    return toAbsoluteApiUrl(trimmed) ?? trimmed;
   }
 
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
   const url = typeof record.url === "string" ? record.url.trim() : "";
-  if (url) return url;
+  if (url) return toAbsoluteApiUrl(url) ?? url;
   const fallback = typeof record.value === "string" ? record.value.trim() : "";
-  return fallback || null;
+  if (!fallback) return null;
+  return toAbsoluteApiUrl(fallback) ?? fallback;
 }
 
 function fallbackCatalog(): PublicCatalog {
@@ -238,7 +260,8 @@ function normalizeProduct(value: unknown): PublicProduct | null {
             if (!item || typeof item !== "object") return null;
             const file = item as Record<string, unknown>;
             const key = String(file.key ?? "").trim();
-            const url = String(file.url ?? file.value ?? "").trim();
+            const rawUrl = String(file.url ?? file.value ?? "").trim();
+            const url = toAbsoluteApiUrl(rawUrl) ?? rawUrl;
             if (!key || !url) return null;
             return {
               key,
