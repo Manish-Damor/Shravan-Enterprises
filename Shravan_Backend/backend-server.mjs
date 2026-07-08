@@ -43,8 +43,8 @@ async function sendResponse(nodeRes, response) {
   Readable.fromWeb(response.body).pipe(nodeRes);
 }
 
-const port = Number(process.env.PORT || "8082");
-const host = process.env.HOST || "0.0.0.0";
+const port = Number(process.env.HTTP_PLATFORM_PORT || process.env.PORT || "8082");
+const host = process.env.HOST || "127.0.0.1";
 
 const server = createServer(async (req, res) => {
   try {

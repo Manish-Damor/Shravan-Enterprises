@@ -2,9 +2,12 @@ import { ObjectId } from "mongodb";
 import { writeFile, mkdir, access, readFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { fileURLToPath } from "url";
 import { getMongoCollections } from "@/integrations/mongo/client.server";
 import { hashPassword, comparePassword, createAuthToken, verifyAuthToken } from "@/integrations/mongo/auth";
 import { sendEnquiryNotificationEmail } from "@/lib/mail";
+
+const appRootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -1358,7 +1361,7 @@ async function handleCollectionRoutes(request: Request, pathname: string, collec
 async function handleUploadRoutes(request: Request, pathname: string) {
   const { generated_pdfs } = await getMongoCollections();
 
-  const uploadsDir = process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads");
+  const uploadsDir = process.env.UPLOADS_DIR || path.join(appRootDir, "uploads");
   await mkdir(uploadsDir, { recursive: true });
 
   // POST /api/uploads - accept JSON { filename, contentType, data(base64) }

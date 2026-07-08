@@ -15,9 +15,10 @@ import {
 import { useEffect, useState } from "react";
 
 import heroImage from "@/assets/hero-industrial.jpg";
+import brochurePdf from "@/assets/Pdf/SHRAVANENTERPRISES.pdf";
 import { submitBrochureEnquiry } from "@/lib/catalog";
 
-const BROCHURE_PATH = "/SHRAVANENTERPRISES.pdf";
+const BROCHURE_PATH = brochurePdf;
 const BROCHURE_FILE_NAME = "Shravan-Enterprises-Brochure.pdf";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

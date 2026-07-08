@@ -137,6 +137,7 @@ export function PageHero({
             >
               {[
                 { label: "Call Direct", value: "+91 98241 24043", icon: Phone },
+                { label: "Call Direct", value: "+91 8000641312", icon: Phone },
                 { label: "WhatsApp", value: "Fast response", icon: MessageCircle },
                 { label: "Business Hours", value: "Mon - Sat, 9:30 - 7:30", icon: Clock3 },
               ].map((item) => (
@@ -303,6 +304,9 @@ function ContactHeroVisual() {
             </div>
             <div className="mt-2 whitespace-nowrap font-semibold text-white">
               +91 98241 24043
+            </div>
+            <div className="mt-2 whitespace-nowrap font-semibold text-white">
+              +91 8000641312
             </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-black/12 p-4">
