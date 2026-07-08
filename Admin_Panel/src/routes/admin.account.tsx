@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { useAdminSearch } from "@/components/admin/admin-search";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MediaDropzone, type MediaValue } from "@/components/admin/media-dropzone";
-import { Plus, Settings2, Globe, Users, Phone, Mail, Building2 } from "lucide-react";
+import { Plus, Settings2, Globe, Users, Phone, Mail, Building2, FileBadge2, Landmark, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/account")({ component: AccountPage });
@@ -39,10 +40,12 @@ type Client = { id: string; name?: string; logo?: MediaValue | null; sort_order?
 function AccountPage() {
   const { user, updateAccount } = useAuth();
   const qc = useQueryClient();
+  const { query, configure } = useAdminSearch();
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("account");
 
   const { data: settings = [] } = useQuery({ queryKey: ["website-settings"], queryFn: async () => apiFetch<SiteSetting[]>("/api/website-settings") });
   const { data: banners = [] } = useQuery({ queryKey: ["banners"], queryFn: async () => apiFetch<Banner[]>("/api/banners") });
@@ -63,6 +66,46 @@ function AccountPage() {
       setSite(globalSetting);
     }
   }, [globalSetting]);
+
+  useEffect(() => {
+    configure({
+      enabled: true,
+      placeholder: "Search settings, banners, clients, or account details",
+    });
+  }, [configure]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const matchedSettingFields = [
+    { label: "Company name", value: site.company_name ?? "" },
+    { label: "Contact email", value: site.contact_email ?? "" },
+    { label: "Contact phone", value: site.contact_phone ?? "" },
+    { label: "Address", value: site.address ?? "" },
+    { label: "About company", value: site.about ?? "" },
+    { label: "Footer content", value: site.footer ?? "" },
+    { label: "GST number", value: site.gst ?? "" },
+    { label: "MSME number", value: site.msme ?? "" },
+    { label: "PAN number", value: site.pan ?? "" },
+    { label: "Facebook", value: site.social?.facebook ?? "" },
+    { label: "Instagram", value: site.social?.instagram ?? "" },
+    { label: "LinkedIn", value: site.social?.linkedin ?? "" },
+    { label: "Website", value: site.social?.website ?? "" },
+    { label: "Admin email", value: email },
+    { label: "Admin phone", value: phone },
+  ].filter((entry) =>
+    !normalizedQuery ||
+    [entry.label, entry.value].join(" ").toLowerCase().includes(normalizedQuery),
+  );
+
+  const filteredBanners = banners.filter((banner) =>
+    !normalizedQuery ||
+    [banner.title ?? "", banner.subtitle ?? "", banner.link ?? ""].join(" ").toLowerCase().includes(normalizedQuery),
+  );
+
+  const filteredClients = clients.filter((client) =>
+    !normalizedQuery ||
+    [client.name ?? "", String(client.sort_order ?? "")].join(" ").toLowerCase().includes(normalizedQuery),
+  );
 
   const saveAccount = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -94,12 +137,50 @@ function AccountPage() {
 
   const addBanner = useMutation({
     mutationFn: async () => apiFetch("/api/banners", { method: "POST", body: JSON.stringify({ title: "New banner", subtitle: "Homepage banner", sort_order: banners.length + 1 }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["banners"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["banners"] });
+      toast.success("Banner added");
+    },
   });
 
   const addClient = useMutation({
     mutationFn: async () => apiFetch("/api/clients", { method: "POST", body: JSON.stringify({ name: "New client", sort_order: clients.length + 1 }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["clients"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      toast.success("Client added");
+    },
+  });
+
+  const saveBanner = useMutation({
+    mutationFn: async (banner: Banner) => apiFetch(`/api/banners/${banner.id}`, { method: "PUT", body: JSON.stringify(banner) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["banners"] });
+      toast.success("Banner updated");
+    },
+  });
+
+  const deleteBanner = useMutation({
+    mutationFn: async (id: string) => apiFetch(`/api/banners/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["banners"] });
+      toast.success("Banner deleted");
+    },
+  });
+
+  const saveClient = useMutation({
+    mutationFn: async (client: Client) => apiFetch(`/api/clients/${client.id}`, { method: "PUT", body: JSON.stringify(client) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      toast.success("Client updated");
+    },
+  });
+
+  const deleteClient = useMutation({
+    mutationFn: async (id: string) => apiFetch(`/api/clients/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      toast.success("Client deleted");
+    },
   });
 
   return (
@@ -112,8 +193,29 @@ function AccountPage() {
         <p className="mt-2 max-w-3xl text-sm text-slate-600">Manage admin login credentials and the company content that appears across the public site.</p>
       </div>
 
-      <Tabs defaultValue="account" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      {normalizedQuery ? (
+        <Card className="rounded-[1.75rem] border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-slate-950">Search matches</div>
+              <div className="text-sm text-slate-500">Showing matches for "{query.trim()}" across account details, company settings, banners, and clients.</div>
+            </div>
+            <div className="text-sm text-slate-500">
+              {matchedSettingFields.length} setting matches, {filteredBanners.length} banners, {filteredClients.length} clients
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {matchedSettingFields.length > 0 ? matchedSettingFields.slice(0, 8).map((entry) => (
+              <div key={entry.label} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-700">
+                {entry.label}: {entry.value || "Empty"}
+              </div>
+            )) : <div className="text-sm text-slate-500">No direct field matches found in account or company settings.</div>}
+          </div>
+        </Card>
+      ) : null}
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-2 rounded-3xl bg-transparent p-0 md:grid-cols-3">
           <TabsTrigger value="account">Admin account</TabsTrigger>
           <TabsTrigger value="site">Company settings</TabsTrigger>
           <TabsTrigger value="content">Banners & clients</TabsTrigger>
@@ -149,7 +251,9 @@ function AccountPage() {
               <Field label="Company name"><Input value={site.company_name ?? ""} onChange={(event) => setSite({ ...site, company_name: event.target.value })} /></Field>
               <Field label="Contact email"><Input value={site.contact_email ?? ""} onChange={(event) => setSite({ ...site, contact_email: event.target.value })} /></Field>
               <Field label="Contact phone"><Input value={site.contact_phone ?? ""} onChange={(event) => setSite({ ...site, contact_phone: event.target.value })} /></Field>
-              <Field label="GST / MSME / PAN"><Input value={[site.gst, site.msme, site.pan].filter(Boolean).join(" / ")} onChange={(event) => setSite({ ...site, gst: event.target.value })} /></Field>
+              <Field label="GST number"><Input value={site.gst ?? ""} onChange={(event) => setSite({ ...site, gst: event.target.value })} /></Field>
+              <Field label="MSME number"><Input value={site.msme ?? ""} onChange={(event) => setSite({ ...site, msme: event.target.value })} /></Field>
+              <Field label="PAN number"><Input value={site.pan ?? ""} onChange={(event) => setSite({ ...site, pan: event.target.value })} /></Field>
               <Field label="Address" className="md:col-span-2"><Textarea rows={3} value={site.address ?? ""} onChange={(event) => setSite({ ...site, address: event.target.value })} /></Field>
               <Field label="About company" className="md:col-span-2"><Textarea rows={5} value={site.about ?? ""} onChange={(event) => setSite({ ...site, about: event.target.value })} /></Field>
               <Field label="Footer content" className="md:col-span-2"><Textarea rows={4} value={site.footer ?? ""} onChange={(event) => setSite({ ...site, footer: event.target.value })} /></Field>
@@ -174,6 +278,8 @@ function AccountPage() {
               <div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-sky-300" /> {site.company_name || "Company name"}</div>
               <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-emerald-300" /> {site.contact_email || "Contact email"}</div>
               <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-amber-300" /> {site.contact_phone || "Contact phone"}</div>
+              <div className="flex items-center gap-2"><Landmark className="h-4 w-4 text-violet-300" /> {site.gst || "GST pending"}</div>
+              <div className="flex items-center gap-2"><FileBadge2 className="h-4 w-4 text-rose-300" /> {site.pan || "PAN pending"}</div>
               <div className="flex items-start gap-2"><Globe className="mt-0.5 h-4 w-4 text-cyan-300" /> {site.about || "About content goes here."}</div>
             </div>
           </Card>
@@ -189,13 +295,25 @@ function AccountPage() {
               <Button variant="outline" className="rounded-2xl" onClick={() => addBanner.mutate()}><Plus className="mr-2 h-4 w-4" /> Add banner</Button>
             </div>
             <div className="mt-5 space-y-3">
-              {banners.map((banner) => (
+              {filteredBanners.map((banner) => (
                 <div key={banner.id} className="rounded-2xl border border-slate-200 p-4">
-                  <div className="font-medium text-slate-950">{banner.title ?? "Untitled banner"}</div>
-                  <div className="text-sm text-slate-500">{banner.subtitle ?? "No subtitle yet"}</div>
+                  <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                    <div className="space-y-2">
+                      <Label>Title</Label>
+                      <Input value={banner.title ?? ""} onChange={(event) => qc.setQueryData<Banner[]>(["banners"], (current = []) => current.map((item) => item.id === banner.id ? { ...item, title: event.target.value } : item))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Subtitle</Label>
+                      <Input value={banner.subtitle ?? ""} onChange={(event) => qc.setQueryData<Banner[]>(["banners"], (current = []) => current.map((item) => item.id === banner.id ? { ...item, subtitle: event.target.value } : item))} />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <Button variant="outline" className="rounded-2xl" onClick={() => saveBanner.mutate(banner)}>Save</Button>
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl" onClick={() => deleteBanner.mutate(banner.id)}><Trash2 className="h-4 w-4 text-rose-500" /></Button>
+                    </div>
+                  </div>
                 </div>
               ))}
-              {banners.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">No banners yet.</div> : null}
+              {filteredBanners.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">{normalizedQuery ? "No banners match this search." : "No banners yet."}</div> : null}
             </div>
           </Card>
 
@@ -208,18 +326,22 @@ function AccountPage() {
               <Button variant="outline" className="rounded-2xl" onClick={() => addClient.mutate()}><Plus className="mr-2 h-4 w-4" /> Add client</Button>
             </div>
             <div className="mt-5 space-y-3">
-              {clients.map((client) => (
+              {filteredClients.map((client) => (
                 <div key={client.id} className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4">
                   <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
                     {client.logo?.url && client.logo.type?.startsWith?.("image/") ? <img src={client.logo.url} alt={client.name} className="h-full w-full object-cover" /> : <Users className="h-4 w-4 text-slate-400" />}
                   </div>
-                  <div className="min-w-0">
-                    <div className="font-medium text-slate-950">{client.name ?? "Client"}</div>
-                    <div className="text-xs text-slate-500">Client showcase entry</div>
+                  <div className="min-w-0 flex-1">
+                    <Label className="mb-2 block text-slate-700">Client name</Label>
+                    <Input value={client.name ?? ""} onChange={(event) => qc.setQueryData<Client[]>(["clients"], (current = []) => current.map((item) => item.id === client.id ? { ...item, name: event.target.value } : item))} />
+                  </div>
+                  <div className="flex items-center gap-2 self-end">
+                    <Button variant="outline" className="rounded-2xl" onClick={() => saveClient.mutate(client)}>Save</Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl" onClick={() => deleteClient.mutate(client.id)}><Trash2 className="h-4 w-4 text-rose-500" /></Button>
                   </div>
                 </div>
               ))}
-              {clients.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">No clients yet.</div> : null}
+              {filteredClients.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">{normalizedQuery ? "No clients match this search." : "No clients yet."}</div> : null}
             </div>
           </Card>
         </TabsContent>

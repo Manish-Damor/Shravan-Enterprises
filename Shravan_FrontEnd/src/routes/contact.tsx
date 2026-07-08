@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@/lib/tanstack-router-compat";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Clock, MessageCircle } from "lucide-react";
 import { useState } from "react";
@@ -29,7 +29,7 @@ const details = [
   {
     icon: Phone,
     title: "Phone",
-    lines: ["+91 98241 24043", "+91 98241 24073"],
+    lines: ["+91 98241 24043", "+91  8000641312 "],
     href: "tel:+919824124043",
   },
   {
@@ -147,6 +147,7 @@ function Contact() {
         eyebrow="Contact Us"
         title="Let's build something premium together."
         description="Speak to our team for custom quotes, bulk orders or technical assistance."
+        variant="contact"
       />
 
       <section className="py-20">

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@/lib/tanstack-router-compat";
 import { motion } from "framer-motion";
 import { Gem, Mountain, Factory, Layers, Wrench } from "lucide-react";
 import { PageHero } from "@/components/site/PageHero";
@@ -28,7 +28,7 @@ const industries = [
 function Industries() {
   return (
     <>
-      <PageHero eyebrow="Industries We Serve" title="Powering India's industrial backbone." description="From artisanal stone workshops to large-scale composite manufacturers — we supply the materials that make industry move." />
+      <PageHero eyebrow="Industries We Serve" title="Powering India's industrial backbone." description="From artisanal stone pro workshops to large-scale composite manufacturers — we supply the materials that make industry move." />
       <section className="py-24">
         <div className="container mx-auto px-6">
           <SectionHeader eyebrow="Sectors" title="Where our materials make the difference." />

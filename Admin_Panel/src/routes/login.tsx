@@ -11,7 +11,7 @@ import { ShieldCheck, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
-  head: () => ({ meta: [{ title: "Sign in — Admin Panel" }] }),
+  head: () => ({ meta: [{ title: "Sign in ï¿½ Admin Panel" }] }),
 });
 
 function LoginPage() {
@@ -22,6 +22,7 @@ function LoginPage() {
   const [signUpIdentifier, setSignUpIdentifier] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && user && isAdmin) {
@@ -38,6 +39,7 @@ function LoginPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
 
     try {
       const trimmed = signInIdentifier.trim();
@@ -45,7 +47,9 @@ function LoginPage() {
       toast.success("Welcome back");
       navigate({ to: "/admin" });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to sign in");
+      const message = error instanceof Error ? error.message : "Unable to sign in";
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -54,14 +58,17 @@ function LoginPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
 
     try {
       const trimmed = signUpIdentifier.trim();
       await signUp(trimmed, signUpPassword);
-      toast.success("Account created — signing you in");
+      toast.success("Account created ï¿½ signing you in");
       navigate({ to: "/admin" });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to create account");
+      const message = error instanceof Error ? error.message : "Unable to create account";
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -80,6 +87,12 @@ function LoginPage() {
         {user && !authLoading && !isAdmin ? (
           <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
             Your account is signed in, but it does not have admin permissions. Use the admin account or create the first admin account if one is not yet set up.
+          </div>
+        ) : null}
+        {errorMessage ? (
+          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 shadow-sm">
+            <div className="font-semibold">Sign-in error</div>
+            <div className="mt-1">{errorMessage}</div>
           </div>
         ) : null}
         <Card className="p-6 shadow-2xl border-border/50">

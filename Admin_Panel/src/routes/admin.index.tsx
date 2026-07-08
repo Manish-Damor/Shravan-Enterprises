@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { apiFetch } from "@/lib/api";
+import { useAdminSearch } from "@/components/admin/admin-search";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, BadgeCheck, Boxes, FileText, Inbox, Plus, Sparkles, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, BadgeCheck, Boxes, FileText, Inbox, Plus, Settings2, Sparkles, TrendingUp, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/admin/")({ component: Dashboard });
@@ -22,14 +24,24 @@ type Product = {
 };
 
 function Dashboard() {
+  const { query, configure } = useAdminSearch();
+
+  useEffect(() => {
+    configure({
+      enabled: true,
+      placeholder: "Search dashboard products, modules, or metrics",
+    });
+  }, [configure]);
+
   const { data } = useQuery({
     queryKey: ["dashboard-overview"],
     queryFn: async () => {
-      const [categories, enquiries, users, products] = await Promise.all([
+      const [categories, enquiries, users, products, brochureRequests] = await Promise.all([
         apiFetch<{ count: number }>("/api/categories/count"),
         apiFetch<{ count: number }>("/api/enquiries/count"),
         apiFetch<Array<{ id: string }>>("/api/users"),
         apiFetch<Product[]>("/api/products"),
+        apiFetch<{ count: number }>("/api/brochure-enquiries/count"),
       ]);
 
       return {
@@ -37,6 +49,7 @@ function Dashboard() {
         enquiries: enquiries.count,
         users: users.length,
         products,
+        brochureRequests: brochureRequests.count,
         totalProducts: products.length,
         totalBrochures: products.filter((product) => product.brochure_pdf?.url || product.tds_pdf?.url).length,
         published: products.filter((product) => product.status === "published").length,
@@ -46,17 +59,44 @@ function Dashboard() {
     },
   });
 
-  const recentProducts = [...(data?.products ?? [])].sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() - new Date(a.updatedAt ?? a.createdAt ?? 0).getTime()).slice(0, 6);
-  const featuredProducts = (data?.products ?? []).filter((product) => product.featured).slice(0, 4);
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const recentProducts = [...(data?.products ?? [])]
+    .filter((product) =>
+      !normalizedQuery ||
+      [product.name ?? "", product.subtitle ?? "", product.status ?? ""].join(" ").toLowerCase().includes(normalizedQuery),
+    )
+    .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() - new Date(a.updatedAt ?? a.createdAt ?? 0).getTime())
+    .slice(0, 6);
+
+  const featuredProducts = (data?.products ?? [])
+    .filter((product) => product.featured)
+    .filter((product) =>
+      !normalizedQuery ||
+      [product.name ?? "", product.subtitle ?? "", product.status ?? ""].join(" ").toLowerCase().includes(normalizedQuery),
+    )
+    .slice(0, 4);
 
   const cards = [
     { label: "Total Products", value: data?.totalProducts ?? 0, icon: Boxes, tone: "from-sky-500 to-blue-600" },
     { label: "Categories", value: data?.categories ?? 0, icon: Sparkles, tone: "from-emerald-500 to-teal-600" },
-    { label: "Brochures / PDFs", value: data?.totalBrochures ?? 0, icon: FileText, tone: "from-slate-700 to-slate-900" },
+    { label: "Brochure Requests", value: data?.brochureRequests ?? 0, icon: Inbox, tone: "from-cyan-500 to-sky-600" },
     { label: "Total Enquiries", value: data?.enquiries ?? 0, icon: Inbox, tone: "from-cyan-500 to-blue-500" },
     { label: "Draft Products", value: data?.drafts ?? 0, icon: BadgeCheck, tone: "from-amber-500 to-orange-600" },
     { label: "Published Products", value: data?.published ?? 0, icon: TrendingUp, tone: "from-emerald-500 to-lime-600" },
-  ];
+  ].filter((card) => !normalizedQuery || card.label.toLowerCase().includes(normalizedQuery));
+
+  const endpointModules = [
+    { title: "Products", route: "/admin/products", endpoints: ["/api/products", "/api/categories"], icon: Boxes },
+    { title: "Categories", route: "/admin/categories", endpoints: ["/api/categories", "/api/categories/count"], icon: Sparkles },
+    { title: "Enquiries", route: "/admin/enquiries", endpoints: ["/api/enquiries", "/api/enquiries/count"], icon: Inbox },
+    { title: "Brochure Requests", route: "/admin/brochure-enquiries", endpoints: ["/api/brochure-enquiries", "/api/brochure-enquiries/count"], icon: FileText },
+    { title: "Users", route: "/admin/users", endpoints: ["/api/users", "/api/users/:id"], icon: Users },
+    { title: "Content & Settings", route: "/admin/account", endpoints: ["/api/website-settings", "/api/banners", "/api/clients"], icon: Settings2 },
+  ].filter((module) =>
+    !normalizedQuery ||
+    [module.title, module.route, ...module.endpoints].join(" ").toLowerCase().includes(normalizedQuery),
+  );
 
   return (
     <div className="space-y-6 xl:space-y-8">
@@ -172,6 +212,32 @@ function Dashboard() {
             </div>
           </Card>
         </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        {endpointModules.map((module) => (
+          <Card key={module.title} className="rounded-[1.75rem] border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-950">{module.title}</div>
+                <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{module.route}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+                <module.icon className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              {module.endpoints.map((endpoint) => (
+                <div key={endpoint} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+                  {endpoint}
+                </div>
+              ))}
+            </div>
+            <Button asChild variant="outline" className="mt-4 w-full rounded-2xl">
+              <Link to={module.route}>Open module</Link>
+            </Button>
+          </Card>
+        ))}
       </section>
     </div>
   );

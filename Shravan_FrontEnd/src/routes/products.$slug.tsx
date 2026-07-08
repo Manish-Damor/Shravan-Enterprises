@@ -1,137 +1,370 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@/lib/tanstack-router-compat";
 import { motion } from "framer-motion";
-import { ArrowLeft, CheckCircle2, Download, MessageCircle, Send } from "lucide-react";
-import { fetchPublicCatalog } from "@/lib/catalog";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  Boxes,
+  ChevronRight,
+  MessageCircle,
+  PackageSearch,
+} from "lucide-react";
+import type { ReactNode } from "react";
 import { SectionHeader } from "@/components/site/SectionHeader";
+import { fetchPublicCatalog } from "@/lib/catalog";
+import { normalizeCategory, normalizeProduct } from "@/lib/product-normalizer";
 
 export const Route = createFileRoute("/products/$slug")({
   loader: async ({ params }) => {
     const catalog = await fetchPublicCatalog();
-    const category = catalog.categories.find((c) => c.slug === params.slug);
+    const categories = (catalog.categories ?? [])
+      .map(normalizeCategory)
+      .filter((category): category is NonNullable<typeof category> => category !== null);
+    const products = (catalog.products ?? [])
+      .map(normalizeProduct)
+      .filter((product): product is NonNullable<typeof product> => product !== null);
+
+    const category = categories.find((item) => item.slug === params.slug);
     if (!category) throw notFound();
-    const items = catalog.products.filter((product) => product.category_slug === category.slug).map((product) => product.name);
-    return { catalog, category, items };
+
+    const items = products.filter((product) => product.category_slug === category.slug);
+    const featured = items.filter((product) => product.featured).slice(0, 3);
+
+    return { category, categories, items, featured };
   },
   head: ({ loaderData }) => ({
     meta: [
-      { title: `${loaderData?.title ?? "Product"} — Shravan Enterprises` },
-      { name: "description", content: loaderData?.tagline ?? "" },
-      { property: "og:title", content: `${loaderData?.title} — Shravan Enterprises` },
-      { property: "og:description", content: loaderData?.tagline ?? "" },
-      { property: "og:image", content: loaderData?.image ?? "" },
+      {
+        title: `${loaderData?.category.title ?? "Category"} - Shravan Enterprises`,
+      },
+      {
+        name: "description",
+        content:
+          loaderData?.category.tagline ??
+          "Explore product previews and detailed specifications by category.",
+      },
+      {
+        property: "og:title",
+        content: `${loaderData?.category.title ?? "Category"} - Shravan Enterprises`,
+      },
+      {
+        property: "og:description",
+        content:
+          loaderData?.category.tagline ??
+          "Explore product previews and detailed specifications by category.",
+      },
+      {
+        property: "og:image",
+        content: loaderData?.category.image ?? "",
+      },
     ],
-    links: [{ rel: "canonical", href: `/products/${loaderData?.slug ?? ""}` }],
+    links: [
+      {
+        rel: "canonical",
+        href: `/products/${loaderData?.category.slug ?? ""}`,
+      },
+    ],
   }),
-  notFoundComponent: () => (
-    <div className="container mx-auto px-6 py-32 text-center">
-      <h1 className="text-4xl font-bold">Category not found</h1>
-      <Link to="/products" className="mt-6 inline-block text-primary font-semibold">← Back to products</Link>
-    </div>
-  ),
-  errorComponent: ({ error }) => (
-    <div className="container mx-auto px-6 py-32 text-center">
-      <h1 className="text-2xl font-bold">Something went wrong</h1>
-      <p className="text-muted-foreground mt-2">{error.message}</p>
-    </div>
-  ),
   component: ProductCategory,
 });
 
 function ProductCategory() {
-  const { catalog, category, items } = Route.useLoaderData();
-  const related = catalog.categories.filter((current) => current.slug !== category.slug).slice(0, 3);
-  const displayItems = items.length > 0 ? items : category.items;
+  const { category, categories, items, featured } = Route.useLoaderData();
+  const relatedCategories = categories.filter((item) => item.slug !== category.slug).slice(0, 4);
+  const highlightedProducts = featured.length > 0 ? featured : items.slice(0, 3);
 
   return (
     <>
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img src={category.image} alt={category.title} className="w-full h-full object-cover" width={1280} height={896} />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, oklch(0.14 0.04 155 / 0.92), oklch(0.36 0.09 155 / 0.7))" }} />
+      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_oklch(0.62_0.13_145_/_0.2),_transparent_35%),linear-gradient(135deg,_oklch(0.17_0.04_160),_oklch(0.28_0.06_158)_52%,_oklch(0.14_0.03_155))] text-white">
+        <div className="absolute inset-0 opacity-15">
+          <img
+            src={category.image || undefined}
+            alt={category.title}
+            className="h-full w-full object-cover mix-blend-screen"
+            width={1440}
+            height={900}
+          />
         </div>
-        <div className="relative container mx-auto px-6 py-28 md:py-36 text-primary-foreground">
-          <Link to="/products" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm mb-6 transition-smooth">
-            <ArrowLeft className="w-4 h-4" /> All Products
-          </Link>
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="text-5xl md:text-7xl font-bold leading-[1.05] max-w-3xl">
-            {category.title}
-          </motion.h1>
-          <p className="mt-5 text-lg md:text-xl text-white/80 max-w-2xl">{category.tagline}</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a href="https://wa.me/919824124043" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-primary font-semibold shadow-elegant hover:scale-105 transition-smooth">
-              <MessageCircle className="w-4 h-4" /> WhatsApp Inquiry
-            </a>
-            <Link to="/contact" className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-white/30 bg-white/10 backdrop-blur font-semibold hover:bg-white/20 transition-smooth">
-              <Send className="w-4 h-4" /> Request a Quote
+        <div
+          className="absolute inset-0 opacity-[0.1]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)",
+            backgroundSize: "54px 54px",
+          }}
+        />
+        <div className="relative container mx-auto px-6 py-20 md:py-24">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm text-white/85 backdrop-blur-sm transition hover:bg-white/12"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to catalog
             </Link>
-            <a href="#" className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-white/30 bg-white/10 backdrop-blur font-semibold hover:bg-white/20 transition-smooth">
-              <Download className="w-4 h-4" /> Download Brochure
-            </a>
+            <span className="hidden text-white/35 md:inline">/</span>
+            <span className="rounded-full border border-white/10 bg-black/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/78">
+              {category.title}
+            </span>
           </div>
-        </div>
-      </section>
 
-      <section className="py-20">
-        <div className="container mx-auto px-6">
-          <div className="grid lg:grid-cols-3 gap-10">
-            <div className="lg:col-span-2">
-              <div className="text-xs font-semibold tracking-[0.2em] uppercase text-primary mb-4">Range Includes</div>
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground">All {displayItems.length} products in this category</h2>
-              <p className="mt-4 text-muted-foreground leading-relaxed">Curated, ISO-grade materials carefully selected for performance, consistency and long-term reliability in industrial applications.</p>
+          <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.2fr)_24rem] xl:items-stretch">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
+                <BadgeCheck className="h-3.5 w-3.5" />
+                Category Overview
+              </div>
+              <h1 className="mt-5 max-w-4xl text-5xl font-bold leading-[1.02] md:text-7xl">
+                {category.title}
+              </h1>
+              <p className="mt-5 max-w-3xl text-lg leading-relaxed text-white/78 md:text-xl">
+                {category.tagline}
+              </p>
 
-              <div className="mt-10 grid sm:grid-cols-2 gap-4">
-                {displayItems.map((item: string, i: number) => (
-                  <motion.div
+              <div className="mt-7 flex flex-wrap gap-2.5">
+                {(category.items ?? []).slice(0, 5).map((item) => (
+                  <span
                     key={item}
-                    initial={{ opacity: 0, y: 15 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.4, delay: i * 0.04 }}
-                    className="group rounded-2xl p-5 bg-card border border-border hover:border-primary/40 shadow-card hover:shadow-elegant transition-smooth flex items-start gap-4"
+                    className="rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm text-white/80 backdrop-blur-sm"
                   >
-                    <div className="w-10 h-10 rounded-xl gradient-primary grid place-items-center shrink-0 shadow-glow group-hover:scale-110 transition-smooth">
-                      <CheckCircle2 className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-foreground">{item}</div>
-                      <div className="text-xs text-muted-foreground mt-1">Available in multiple grades & packing.</div>
-                    </div>
-                  </motion.div>
+                    {item}
+                  </span>
                 ))}
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a
+                  href="https://wa.me/919824124043"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-primary transition hover:scale-[1.02]"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Speak to sales
+                </a>
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur-sm transition hover:bg-white/16"
+                >
+                  Request quote
+                </Link>
+              </div>
+
+              <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                <StatCard
+                  icon={<Boxes className="h-5 w-5" />}
+                  label="Products"
+                  value={String(items.length)}
+                />
+                <StatCard
+                  icon={<PackageSearch className="h-5 w-5" />}
+                  label="Featured"
+                  value={String(featured.length)}
+                />
+                <StatCard
+                  icon={<BadgeCheck className="h-5 w-5" />}
+                  label="Item Lines"
+                  value={String(category.items?.length ?? 0)}
+                />
               </div>
             </div>
 
-            <aside className="lg:sticky lg:top-28 h-fit">
-              <div className="rounded-3xl p-7 bg-card border border-border shadow-card">
-                <h3 className="text-xl font-bold text-foreground">Quick Inquiry</h3>
-                <p className="text-sm text-muted-foreground mt-1">Get pricing & availability within hours.</p>
-                <form className="mt-5 space-y-3" onSubmit={(e) => e.preventDefault()}>
-                  <input required maxLength={100} placeholder="Your Name" className="w-full px-4 py-3 rounded-lg bg-secondary/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  <input required type="tel" maxLength={20} placeholder="Phone Number" className="w-full px-4 py-3 rounded-lg bg-secondary/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  <input required type="email" maxLength={255} placeholder="Email" className="w-full px-4 py-3 rounded-lg bg-secondary/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                  <textarea rows={3} maxLength={1000} placeholder={`Interested in ${category.title}...`} className="w-full px-4 py-3 rounded-lg bg-secondary/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
-                  <button type="submit" className="w-full py-3 rounded-lg gradient-primary text-primary-foreground font-semibold shadow-glow hover:scale-[1.02] transition-smooth">
-                    Send Inquiry
-                  </button>
-                </form>
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45 }}
+              className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.06))] p-5 backdrop-blur-sm"
+            >
+              <div className="overflow-hidden rounded-[1.6rem] border border-white/10">
+                <img
+                  src={category.image || undefined}
+                  alt={category.title}
+                  className="h-60 w-full object-cover"
+                  width={1280}
+                  height={896}
+                />
               </div>
-            </aside>
+              <div className="mt-5 rounded-[1.6rem] border border-white/10 bg-black/15 p-5">
+                <div className="text-xs font-semibold uppercase tracking-[0.22em] text-white/55">
+                  Top products in this category
+                </div>
+                <div className="mt-4 space-y-3">
+                  {highlightedProducts.map((product, index) => (
+                    <Link
+                      key={product.slug}
+                      to="/product/$slug"
+                      params={{ slug: product.slug }}
+                      className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/8 px-4 py-3 transition hover:bg-white/14"
+                    >
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.2em] text-white/45">
+                          0{index + 1}
+                        </div>
+                        <div className="mt-1 font-semibold text-white">{product.name}</div>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-white/60" />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      <section className="py-20 bg-secondary/30">
+      <section className="relative py-18 md:py-22">
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,_transparent,_oklch(0.97_0.01_150))]" />
         <div className="container mx-auto px-6">
-          <SectionHeader eyebrow="Related Categories" title="Explore more of our catalog." />
-          <div className="mt-12 grid md:grid-cols-3 gap-6">
-            {related.map((r) => (
-              <Link key={r.slug} to="/products/$slug" params={{ slug: r.slug }} className="group block rounded-3xl overflow-hidden bg-card border border-border shadow-card hover:shadow-elegant transition-smooth">
-                <div className="aspect-[4/3] overflow-hidden">
-                  <img src={r.image} alt={r.title} loading="lazy" width={1280} height={896} className="w-full h-full object-cover group-hover:scale-110 transition-smooth duration-700" />
+          <SectionHeader
+            eyebrow="Product Range"
+            title={`Preview all ${items.length} products in ${category.title}.`}
+          />
+          <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
+            Each product below links to a dedicated detail page with overview, specifications,
+            documents, inquiry form, and related products from the same category.
+          </p>
+
+          {items.length > 0 ? (
+            <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {items.map((product, index) => (
+                <motion.div
+                  key={product.slug}
+                  initial={{ opacity: 0, y: 22 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-60px" }}
+                  transition={{ duration: 0.45, delay: index * 0.03 }}
+                >
+                  <Link
+                    to="/product/$slug"
+                    params={{ slug: product.slug }}
+                    className="group flex h-full flex-col overflow-hidden rounded-[2rem] border border-border/80 bg-card shadow-card transition-smooth hover:-translate-y-1 hover:border-primary/35 hover:shadow-elegant"
+                  >
+                    <div className="relative overflow-hidden border-b border-border/70 bg-[linear-gradient(145deg,_oklch(0.98_0.01_150),_oklch(0.94_0.015_150))]">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_oklch(0.65_0.18_152_/_0.18),_transparent_35%)]" />
+                      <div className="flex min-h-[240px] items-center justify-center p-8">
+                        <img
+                          src={product.image || category.image || undefined}
+                          alt={product.name}
+                          loading="lazy"
+                          className="max-h-44 object-contain transition duration-500 group-hover:scale-105"
+                        />
+                      </div>
+                      {product.featured ? (
+                        <div className="absolute left-5 top-5 rounded-full bg-primary px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground">
+                          Featured
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="flex flex-1 flex-col p-6">
+                      <div className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/75">
+                        {category.title}
+                      </div>
+                      <h2 className="mt-3 text-2xl font-bold leading-tight text-foreground transition group-hover:text-primary">
+                        {product.name}
+                      </h2>
+                      <p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">
+                        {product.short_description ??
+                          product.detailed_description ??
+                          "Industrial-grade product profile with application and specification support."}
+                      </p>
+
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        {(product.tags?.slice(0, 2) ?? []).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {(product.applications?.length ?? 0) > 0 ? (
+                          <span className="rounded-full bg-primary/8 px-3 py-1 text-xs font-medium text-primary">
+                            {product.applications?.[0]}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                        Open product details
+                        <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-10 rounded-[2rem] border border-border bg-card p-8 shadow-card">
+              <div className="max-w-2xl">
+                <div className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">
+                  Catalog update in progress
                 </div>
-                <div className="p-6">
-                  <h3 className="font-bold text-foreground group-hover:text-primary transition-smooth">{r.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{r.tagline}</p>
+                <h2 className="mt-3 text-3xl font-bold text-foreground">
+                  Products for this category will be listed here.
+                </h2>
+                <p className="mt-4 text-base leading-7 text-muted-foreground">
+                  This category page is ready and the item coverage is shown below. Individual
+                  products can be published into this section as they are added to the catalog.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="border-y border-border/70 bg-secondary/35 py-18">
+        <div className="container mx-auto px-6">
+          <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr]">
+            <div>
+              <SectionHeader
+                eyebrow="Category Coverage"
+                title={`Everything covered under ${category.title}.`}
+              />
+              <p className="mt-4 max-w-xl text-muted-foreground">
+                Useful for fast scanning when buyers want to compare the full range before opening
+                individual product pages.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(category.items ?? []).map((item) => (
+                <div
+                  key={item}
+                  className="rounded-[1.5rem] border border-border bg-white/85 px-5 py-4 text-sm font-medium text-foreground shadow-sm"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-18 md:py-22">
+        <div className="container mx-auto px-6">
+          <SectionHeader
+            eyebrow="More Categories"
+            title="Continue browsing adjacent product families."
+          />
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {relatedCategories.map((relatedCategory) => (
+              <Link
+                key={relatedCategory.slug}
+                to="/products/$slug"
+                params={{ slug: relatedCategory.slug }}
+                className="group overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-card transition hover:-translate-y-1 hover:shadow-elegant"
+              >
+                <div className="aspect-[5/4] overflow-hidden">
+                  <img
+                    src={relatedCategory.image || undefined}
+                    alt={relatedCategory.title}
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                  />
+                </div>
+                <div className="p-5">
+                  <div className="font-bold text-foreground transition group-hover:text-primary">
+                    {relatedCategory.title}
+                  </div>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                    {relatedCategory.tagline}
+                  </p>
                 </div>
               </Link>
             ))}
@@ -139,5 +372,15 @@ function ProductCategory() {
         </div>
       </section>
     </>
+  );
+}
+
+function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-[1.5rem] border border-white/10 bg-black/15 p-4">
+      <div className="flex items-center gap-2 text-white/65">{icon}</div>
+      <div className="mt-4 text-3xl font-bold text-white">{value}</div>
+      <div className="mt-1 text-sm text-white/62">{label}</div>
+    </div>
   );
 }

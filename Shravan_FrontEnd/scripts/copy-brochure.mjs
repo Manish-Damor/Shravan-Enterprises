@@ -1,7 +1,3 @@
-import { spawnSync } from 'child_process';
-const target = new URL('../../tools/copy-brochure.mjs', import.meta.url).pathname;
-const res = spawnSync(process.execPath, [target], { stdio: 'inherit' });
-process.exit(res.status || 0);
 import fs from 'fs';
 import { copyFile, mkdir } from 'fs/promises';
 import path from 'path';

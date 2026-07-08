@@ -1,4 +1,5 @@
 import { categories as fallbackCategories, type Category as FallbackCategory } from "@/lib/products-data";
+import type { QueryClient } from "@tanstack/react-query";
 
 export type PublicCategory = {
   id: string | null;
@@ -16,13 +17,31 @@ export type PublicProduct = {
   slug: string;
   name: string;
   subtitle: string | null;
+  characteristics?: string | null;
   category_id: string | null;
   category_slug: string | null;
   category_title: string | null;
   featured: boolean;
   image: string | null;
+  gallery_images?: string[];
+  files?: Array<{
+    key: string;
+    url: string;
+    name: string;
+    type: string | null;
+  }>;
+  applications?: string[];
+  application_rows?: unknown[];
+  industries?: string[];
+  tags?: string[];
   short_description: string | null;
   detailed_description: string | null;
+  key_features?: string | null;
+  unit_of_measurement?: string | null;
+  moq?: string | null;
+  available_packing_size?: string | null;
+  technical_specifications?: unknown;
+  specification_rows?: unknown[];
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -53,14 +72,64 @@ export type BrochureEnquiryInput = {
   email: string;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.trim() ?? import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ?? "";
-const LOCAL_API_PORT_CANDIDATES = ["8083", "8081"] as const;
+const LOCAL_API_PORT_CANDIDATES = ["8082", "8083"] as const;
+const IIS_BACKEND_PORT = "8083";
+const DEV_FRONTEND_PORTS = new Set(["8094", "8095"]);
 
 const fallbackBySlug = new Map(fallbackCategories.map((category) => [category.slug, category]));
 
 function toAbsoluteApiUrl(path: string) {
-  if (!API_BASE_URL) return null;
-  return new URL(path, API_BASE_URL).toString();
+  const apiBaseUrl = getConfiguredApiBaseUrl();
+  if (!apiBaseUrl) return null;
+  return new URL(path, apiBaseUrl).toString();
+}
+
+function getWindowDerivedApiBaseUrl() {
+  if (typeof window === "undefined") return "";
+
+  const { protocol, hostname, port } = window.location;
+  if (!hostname) return "";
+
+  const isLocalHost = ["localhost", "127.0.0.1", "::1"].includes(hostname);
+  if (isLocalHost) {
+    const backendPort = DEV_FRONTEND_PORTS.has(port) ? "8082" : IIS_BACKEND_PORT;
+    return `${protocol}//${hostname}:${backendPort}`;
+  }
+
+  return `${protocol}//${hostname}:${IIS_BACKEND_PORT}`;
+}
+
+function readProcessEnv(name: string) {
+  try {
+    if (typeof process !== "undefined" && process.env && typeof process.env[name] === "string") {
+      return process.env[name]?.trim() ?? "";
+    }
+  } catch {}
+
+  return "";
+}
+
+function getConfiguredApiBaseUrl() {
+  const configured =
+    import.meta.env.VITE_API_URL?.trim() ??
+    import.meta.env.VITE_PUBLIC_API_BASE_URL?.trim() ??
+    readProcessEnv("VITE_API_URL") ??
+    readProcessEnv("VITE_PUBLIC_API_BASE_URL") ??
+    readProcessEnv("API_URL") ??
+    readProcessEnv("PUBLIC_API_URL") ??
+    "";
+
+  if (configured) return configured;
+
+  const derived = getWindowDerivedApiBaseUrl();
+  if (derived) return derived;
+
+  // During SSR in local development, there is no browser origin or Vite proxy.
+  if (import.meta.env.DEV) {
+    return "http://localhost:8082";
+  }
+
+  return "";
 }
 
 function appendUniqueUrl(urls: string[], value: string | null) {
@@ -97,6 +166,22 @@ function getApiRequestUrls(path: string) {
 
 function fallbackCategoryImage(slug: string) {
   return fallbackBySlug.get(slug)?.image ?? "";
+}
+
+function readMediaUrl(value: unknown) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return toAbsoluteApiUrl(trimmed) ?? trimmed;
+  }
+
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const url = typeof record.url === "string" ? record.url.trim() : "";
+  if (url) return toAbsoluteApiUrl(url) ?? url;
+  const fallback = typeof record.value === "string" ? record.value.trim() : "";
+  if (!fallback) return null;
+  return toAbsoluteApiUrl(fallback) ?? fallback;
 }
 
 function fallbackCatalog(): PublicCatalog {
@@ -158,13 +243,53 @@ function normalizeProduct(value: unknown): PublicProduct | null {
     slug,
     name,
     subtitle: product.subtitle ? String(product.subtitle) : null,
+    characteristics: product.characteristics ? String(product.characteristics) : null,
     category_id: product.category_id ? String(product.category_id) : null,
     category_slug: product.category_slug ? String(product.category_slug) : null,
     category_title: product.category_title ? String(product.category_title) : null,
     featured: Boolean(product.featured),
-    image: product.image ? String(product.image) : null,
+    image: readMediaUrl(product.image) ?? (product.image ? String(product.image) : null),
+    gallery_images: Array.isArray(product.gallery_images)
+      ? product.gallery_images
+          .map((item) => readMediaUrl(item) ?? (typeof item === "string" ? item.trim() : ""))
+          .filter(Boolean)
+      : [],
+    files: Array.isArray(product.files)
+      ? product.files
+          .map((item) => {
+            if (!item || typeof item !== "object") return null;
+            const file = item as Record<string, unknown>;
+            const key = String(file.key ?? "").trim();
+            const rawUrl = String(file.url ?? file.value ?? "").trim();
+            const url = toAbsoluteApiUrl(rawUrl) ?? rawUrl;
+            if (!key || !url) return null;
+            return {
+              key,
+              url,
+              name: String(file.name ?? file.filename ?? key).trim(),
+              type: file.type ? String(file.type) : null,
+            };
+          })
+          .filter((item): item is NonNullable<PublicProduct["files"]>[number] => item !== null)
+      : [],
+    applications: Array.isArray(product.applications)
+      ? product.applications.map((item) => String(item).trim()).filter(Boolean)
+      : [],
+    application_rows: Array.isArray(product.application_rows) ? product.application_rows : [],
+    industries: Array.isArray(product.industries)
+      ? product.industries.map((item) => String(item).trim()).filter(Boolean)
+      : [],
+    tags: Array.isArray(product.tags)
+      ? product.tags.map((item) => String(item).trim()).filter(Boolean)
+      : [],
     short_description: product.short_description ? String(product.short_description) : null,
     detailed_description: product.detailed_description ? String(product.detailed_description) : null,
+    key_features: product.key_features ? String(product.key_features) : null,
+    unit_of_measurement: product.unit_of_measurement ? String(product.unit_of_measurement) : null,
+    moq: product.moq ? String(product.moq) : null,
+    available_packing_size: product.available_packing_size ? String(product.available_packing_size) : null,
+    technical_specifications: product.technical_specifications ?? null,
+    specification_rows: Array.isArray(product.specification_rows) ? product.specification_rows : [],
     createdAt: product.createdAt ? String(product.createdAt) : null,
     updatedAt: product.updatedAt ? String(product.updatedAt) : null,
   };
@@ -215,7 +340,11 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     const payload = text ? JSON.parse(text) : null;
 
     if (!response.ok) {
-      throw new Error(payload?.message || response.statusText || "Request failed");
+      const err = new Error(payload?.message || response.statusText || "Request failed");
+      try {
+        (err as any).payload = payload;
+      } catch {}
+      throw err;
     }
 
     return payload as T;
@@ -251,6 +380,33 @@ export async function fetchPublicCatalog(): Promise<PublicCatalog> {
   } catch {
     return fallbackCatalog();
   }
+}
+
+export async function fetchPublicProductBySlug(slug: string) {
+  try {
+    const payload = await requestJson<{ products?: unknown[] }>("/api/public/catalog");
+    const products = payload.products ?? [];
+    const found = (products as Record<string, unknown>[]).find(
+      (product) => String(product.slug ?? "").trim() === String(slug ?? "").trim(),
+    );
+    return found ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function getPublicCatalogQueryOptions() {
+  return {
+    queryKey: ["public-catalog"] as const,
+    queryFn: fetchPublicCatalog,
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: true as const,
+    refetchOnWindowFocus: true as const,
+  };
+}
+
+export async function preloadPublicCatalog(queryClient: QueryClient) {
+  await queryClient.ensureQueryData(getPublicCatalogQueryOptions());
 }
 
 export async function submitPublicEnquiry(input: PublicEnquiryInput) {

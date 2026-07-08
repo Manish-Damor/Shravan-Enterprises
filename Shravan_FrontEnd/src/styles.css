@@ -1,6 +1,6 @@
 @import "tailwindcss" source(none);
-@source "../src";
 @import "tw-animate-css";
+@source "../src";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -63,6 +63,9 @@
 
 :root {
   --radius: 0.75rem;
+  --navbar-height: 5rem;
+  --site-max-width: 1700px;
+  --site-width: 96%;
   /* Shravan Enterprises — Luxury Industrial Green */
   --background: oklch(0.99 0.005 150);
   --foreground: oklch(0.18 0.04 155);
@@ -86,7 +89,12 @@
   --input: oklch(0.92 0.012 150);
   --ring: oklch(0.55 0.17 152);
   --silver: oklch(0.86 0.005 150);
-  --gradient-hero: linear-gradient(135deg, oklch(0.18 0.06 155) 0%, oklch(0.36 0.09 155) 60%, oklch(0.55 0.17 152) 100%);
+  --gradient-hero: linear-gradient(
+    135deg,
+    oklch(0.18 0.06 155) 0%,
+    oklch(0.36 0.09 155) 60%,
+    oklch(0.55 0.17 152) 100%
+  );
   --gradient-primary: linear-gradient(135deg, oklch(0.36 0.09 155), oklch(0.55 0.17 152));
   --gradient-subtle: linear-gradient(180deg, oklch(0.99 0.005 150), oklch(0.96 0.012 150));
   --shadow-glow: 0 0 60px -10px oklch(0.55 0.17 152 / 0.45);
@@ -113,9 +121,9 @@
 .dark {
   --background: oklch(0.14 0.03 155);
   --foreground: oklch(0.97 0.01 150);
-  --card: oklch(0.20 0.04 155);
+  --card: oklch(0.2 0.04 155);
   --card-foreground: oklch(0.97 0.01 150);
-  --popover: oklch(0.20 0.04 155);
+  --popover: oklch(0.2 0.04 155);
   --popover-foreground: oklch(0.97 0.01 150);
   --primary: oklch(0.65 0.18 152);
   --primary-foreground: oklch(0.12 0.04 155);
@@ -130,7 +138,7 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.65 0.18 152);
-  --glass-bg: oklch(0.20 0.04 155 / 0.5);
+  --glass-bg: oklch(0.2 0.04 155 / 0.5);
   --glass-border: oklch(1 0 0 / 0.1);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -155,12 +163,27 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family:
+      "Inter",
+      system-ui,
+      -apple-system,
+      sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', Georgia, serif;
+  html,
+  body,
+  #root {
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Playfair Display", Georgia, serif;
     letter-spacing: -0.02em;
   }
 }
@@ -172,31 +195,72 @@
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid var(--glass-border);
   }
-  .gradient-hero { background: var(--gradient-hero); }
-  .gradient-primary { background: var(--gradient-primary); }
-  .gradient-subtle { background: var(--gradient-subtle); }
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  .gradient-subtle {
+    background: var(--gradient-subtle);
+  }
   .text-gradient {
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
-  .shadow-glow { box-shadow: var(--shadow-glow); }
-  .shadow-elegant { box-shadow: var(--shadow-elegant); }
-  .shadow-card { box-shadow: var(--shadow-card); }
-  .transition-smooth { transition: all var(--transition-smooth); }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .transition-smooth {
+    transition: all var(--transition-smooth);
+  }
   .glow-ring {
-    box-shadow: 0 0 0 1px oklch(0.55 0.17 152 / 0.3), 0 0 40px -8px oklch(0.55 0.17 152 / 0.5);
+    box-shadow:
+      0 0 0 1px oklch(0.55 0.17 152 / 0.3),
+      0 0 40px -8px oklch(0.55 0.17 152 / 0.5);
+  }
+  .site-container {
+    width: var(--site-width);
+    max-width: var(--site-max-width);
+    margin-inline: auto;
+  }
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
 }
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 30px -5px oklch(0.55 0.17 152 / 0.4); }
-  50% { box-shadow: 0 0 60px -5px oklch(0.55 0.17 152 / 0.7); }
+  0%,
+  100% {
+    box-shadow: 0 0 30px -5px oklch(0.55 0.17 152 / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 60px -5px oklch(0.55 0.17 152 / 0.7);
+  }
 }
-.animate-float { animation: float 6s ease-in-out infinite; }
-.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}

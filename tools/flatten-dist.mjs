@@ -1,35 +1,86 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
-// Try a few likely locations for the dist/client folder depending on where this script is run from
-const candidates = [
-  path.resolve(process.cwd(), 'dist', 'client'),
-  path.resolve(process.cwd(), 'Shravan_FrontEnd', 'dist', 'client'),
-  path.resolve(process.cwd(), '..', 'Shravan_FrontEnd', 'dist', 'client'),
-];
+const distRoot = path.resolve(process.cwd(), "dist");
+const distClient = path.join(distRoot, "client");
+const distServer = path.join(distRoot, "server");
+const serverManifest = path.join(distServer, ".vite", "manifest.json");
 
-let distClient = null;
-let distRoot = null;
-for (const c of candidates) {
-  if (fs.existsSync(c)) {
-    distClient = c;
-    distRoot = path.resolve(c, '..');
-    break;
-  }
-}
-
-if (!distClient) {
-  console.error('dist client not found in any candidate locations:', candidates);
+if (!fs.existsSync(distClient)) {
+  console.error("Frontend dist client folder not found:", distClient);
   process.exit(1);
 }
 
-// Simple flatten: move client assets into dist root (used by some deployments)
+if (!fs.existsSync(serverManifest)) {
+  console.error("Frontend server manifest not found:", serverManifest);
+  process.exit(1);
+}
+
+function findClientEntryScript(assetsDir) {
+  const assetFiles = fs
+    .readdirSync(assetsDir)
+    .filter((name) => name.endsWith(".js"))
+    .sort();
+
+  for (const fileName of assetFiles) {
+    const filePath = path.join(assetsDir, fileName);
+    const source = fs.readFileSync(filePath, "utf8");
+
+    if (source.includes("hydrateRoot(document")) {
+      return `assets/${fileName}`;
+    }
+  }
+
+  return null;
+}
+
+const manifest = JSON.parse(fs.readFileSync(serverManifest, "utf8"));
+const stylesEntry = Object.values(manifest).find(
+  (entry) => entry && typeof entry === "object" && entry.src?.endsWith("/src/styles.css"),
+);
+
+const clientEntryScript = findClientEntryScript(path.join(distClient, "assets"));
+
+if (!clientEntryScript) {
+  console.error("Frontend client entry script could not be determined.");
+  process.exit(1);
+}
+
+const stylesheetHref = stylesEntry?.file ? `./${stylesEntry.file}` : null;
+const clientHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shravan Enterprises</title>
+    <meta name="description" content="Shravan Enterprises frontend" />
+${stylesheetHref ? `    <link rel="stylesheet" href="${stylesheetHref}" />` : ""}
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="apple-touch-icon" href="./favicon.png" />
+  </head>
+  <body>
+    <script type="module" src="./${clientEntryScript}"></script>
+  </body>
+</html>
+`;
+
+for (const name of fs.readdirSync(distRoot)) {
+  if (name === "client" || name === "server") {
+    continue;
+  }
+
+  fs.rmSync(path.join(distRoot, name), { recursive: true, force: true });
+}
+
+fs.writeFileSync(path.join(distClient, "index.html"), clientHtml, "utf8");
+
 for (const name of fs.readdirSync(distClient)) {
   const src = path.join(distClient, name);
   const dest = path.join(distRoot, name);
-  if (fs.existsSync(dest)) continue;
   fs.renameSync(src, dest);
 }
 
-try { fs.rmdirSync(distClient); } catch {}
-console.log('flatten-dist: completed, moved assets to', distRoot);
+fs.rmSync(distClient, { recursive: true, force: true });
+fs.rmSync(distServer, { recursive: true, force: true });
+
+console.log("flatten-dist: completed, dist contains only frontend files at", distRoot);

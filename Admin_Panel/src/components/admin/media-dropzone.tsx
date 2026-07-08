@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 import { UploadCloud, X } from "lucide-react";
 
 type MediaValue = {
@@ -10,18 +11,29 @@ type MediaValue = {
 };
 
 async function fileToMediaValue(file: File): Promise<MediaValue> {
-  const url = await new Promise<string>((resolve, reject) => {
+  // Read as data URL and upload to backend upload endpoint.
+  const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
 
-  return {
-    name: file.name,
-    type: file.type,
-    url,
-  };
+  // dataUrl is like 'data:<type>;base64,<data>'
+  const parts = dataUrl.split(",");
+  const base64 = parts[1] ?? "";
+
+  try {
+    const payload = await apiFetch<{ url?: string; path?: string; id?: string; insertedId?: string }>("/api/uploads", {
+      method: "POST",
+      body: JSON.stringify({ filename: file.name, contentType: file.type || "application/octet-stream", data: base64 }),
+    });
+    const url = payload.url || payload.path || payload.id ? payload.url || `/api/uploads/${payload.id || payload.insertedId || payload.path}` : dataUrl;
+    return { name: file.name, type: file.type, url };
+  } catch (err) {
+    // fallback to dataUrl so UX still works offline
+    return { name: file.name, type: file.type, url: dataUrl };
+  }
 }
 
 export function MediaDropzone({
@@ -44,7 +56,15 @@ export function MediaDropzone({
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const next = await Promise.all(Array.from(files).map(fileToMediaValue));
-    onChange(multiple ? next : next[0] ?? null);
+    if (multiple) {
+      const merged = [...items, ...next].filter(
+        (item, index, list) => list.findIndex((entry) => entry.url === item.url) === index,
+      );
+      onChange(merged);
+      return;
+    }
+
+    onChange(next[0] ?? null);
   };
 
   return (
