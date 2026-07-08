@@ -44,7 +44,7 @@ export default function ProductOverview({
 
   const commercialFacts = [
     { label: "Unit", value: product.unit_of_measurement ?? "" },
-    { label: "MOQ", value: product.moq ?? "" },
+    { label: "Min. Order QTY", value: product.moq ?? "" },
     { label: "Packing Size", value: product.available_packing_size ?? "" },
   ].filter((item) => item.value);
 

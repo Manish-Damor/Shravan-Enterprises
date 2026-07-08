@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { useAdminSearch } from "@/components/admin/admin-search";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield, Users } from "lucide-react";
@@ -34,8 +34,15 @@ const roleMeta: Record<string, { label: string; tone: string; permissions: strin
 
 function UsersPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const { query, configure } = useAdminSearch();
+
+  useEffect(() => {
+    configure({
+      enabled: true,
+      placeholder: "Search users by email, phone, or user ID",
+    });
+  }, [configure]);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users"],
@@ -53,12 +60,12 @@ function UsersPage() {
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
-      const query = search.toLowerCase();
+      const normalizedQuery = query.toLowerCase();
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
-      const matchesSearch = (user.email ?? "").toLowerCase().includes(query) || (user.phone ?? "").toLowerCase().includes(query) || user.id.toLowerCase().includes(query);
+      const matchesSearch = (user.email ?? "").toLowerCase().includes(normalizedQuery) || (user.phone ?? "").toLowerCase().includes(normalizedQuery) || user.id.toLowerCase().includes(normalizedQuery);
       return matchesRole && matchesSearch;
     });
-  }, [users, search, roleFilter]);
+  }, [users, query, roleFilter]);
 
   const roleCounts = users.reduce<Record<string, number>>((acc, user) => {
     acc[user.role] = (acc[user.role] ?? 0) + 1;
@@ -92,9 +99,6 @@ function UsersPage() {
 
       <Card className="rounded-[1.75rem] border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap gap-3">
-          <div className="relative min-w-[220px] flex-1">
-            <Input placeholder="Search by email, phone, or user ID" value={search} onChange={(event) => setSearch(event.target.value)} />
-          </div>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
             <SelectTrigger className="w-[220px]"><SelectValue placeholder="Role filter" /></SelectTrigger>
             <SelectContent>

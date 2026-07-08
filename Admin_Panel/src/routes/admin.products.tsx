@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { useAdminSearch } from "@/components/admin/admin-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { MediaDropzone, type MediaValue } from "@/components/admin/media-dropzone";
 import { RepeatableEditor, type RepeatableRow } from "@/components/admin/repeatable-editor";
-import { Eye, EyeOff, ImageIcon, Package2, Plus, Search, ShieldCheck, Trash2 } from "lucide-react";
+import { Eye, EyeOff, ImageIcon, Package2, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/products")({ component: ProductsPage });
@@ -114,12 +115,20 @@ const slugify = (value: string) =>
 
 function ProductsPage() {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ProductForm | null>(null);
+  const [viewing, setViewing] = useState<ProductDocument | null>(null);
   const [toDelete, setToDelete] = useState<ProductDocument | null>(null);
+  const { query, configure } = useAdminSearch();
+
+  useEffect(() => {
+    configure({
+      enabled: true,
+      placeholder: "Search products by name, type, or short line",
+    });
+  }, [configure]);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -132,14 +141,15 @@ function ProductsPage() {
   });
 
   const filteredProducts = products.filter((product) => {
-    const query = search.trim().toLowerCase();
+    const normalizedQuery = query.trim().toLowerCase();
     const categoryMatch = categoryFilter === "all" || product.category_id === categoryFilter;
     const statusMatch = statusFilter === "all" || (product.status ?? "draft") === statusFilter;
     const textMatch =
-      !query ||
-      (product.name ?? "").toLowerCase().includes(query) ||
-      (product.subtitle ?? "").toLowerCase().includes(query) ||
-      (product.characteristics ?? "").toLowerCase().includes(query);
+      !normalizedQuery ||
+      (product.name ?? "").toLowerCase().includes(normalizedQuery) ||
+      (product.subtitle ?? "").toLowerCase().includes(normalizedQuery) ||
+      (product.characteristics ?? "").toLowerCase().includes(normalizedQuery) ||
+      (product.short_description ?? "").toLowerCase().includes(normalizedQuery);
 
     return categoryMatch && statusMatch && textMatch;
   });
@@ -225,6 +235,13 @@ function ProductsPage() {
     setOpen(true);
   };
 
+  const handleEditorOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setEditing(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -252,16 +269,6 @@ function ProductsPage() {
 
       <Card className="rounded-[1.75rem] border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap gap-3">
-          <div className="relative min-w-[240px] flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="pl-9"
-              placeholder="Search by product name, type, or short line"
-            />
-          </div>
-
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="All categories" />
@@ -378,6 +385,14 @@ function ProductsPage() {
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
+                          className="rounded-xl"
+                          onClick={() => setViewing(product)}
+                        >
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="ghost"
                           className="rounded-xl"
                           onClick={() => openEditor(product)}
@@ -406,7 +421,7 @@ function ProductsPage() {
       {editing ? (
         <ProductEditorDialog
           open={open}
-          onOpenChange={setOpen}
+          onOpenChange={handleEditorOpenChange}
           form={editing}
           categories={categories}
           onChange={setEditing}
@@ -414,6 +429,22 @@ function ProductsPage() {
           saving={saveProduct.isPending}
         />
       ) : null}
+
+      <Dialog open={!!viewing} onOpenChange={(state) => !state && setViewing(null)}>
+        <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto rounded-[1.75rem] bg-slate-50">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-semibold text-slate-950">
+              {viewing?.name ?? "Product details"}
+            </DialogTitle>
+          </DialogHeader>
+          {viewing ? (
+            <ProductViewDialogContent
+              product={viewing}
+              categoryName={categories.find((category) => category.id === viewing.category_id)?.name ?? "Unassigned"}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!toDelete} onOpenChange={(state) => !state && setToDelete(null)}>
         <AlertDialogContent>
@@ -464,6 +495,98 @@ function normalizeToForm(product: ProductDocument): ProductForm {
     moq: product.moq ?? "",
     available_packing_size: product.available_packing_size ?? "",
   };
+}
+
+function ProductViewDialogContent({
+  product,
+  categoryName,
+}: {
+  product: ProductDocument;
+  categoryName: string;
+}) {
+  const mediaItems = [product.image, ...(product.gallery_images ?? [])].filter(Boolean) as MediaValue[];
+
+  return (
+    <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+      <SectionCard
+        title="Product overview"
+        description="Read-only product information for quick review."
+      >
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Badge className="rounded-full bg-slate-950 text-white hover:bg-slate-950">{product.status ?? "draft"}</Badge>
+            <Badge variant="secondary" className="rounded-full">{categoryName}</Badge>
+            <Badge variant="secondary" className="rounded-full">{product.characteristics ?? "No type / grade"}</Badge>
+            {product.featured ? <Badge className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100">Featured</Badge> : null}
+          </div>
+          <ReadOnlyField label="Slug" value={product.slug} />
+          <ReadOnlyField label="Short line" value={product.subtitle} />
+          <ReadOnlyField label="Short description" value={product.short_description} multiline />
+          <ReadOnlyField label="Detailed description" value={product.detailed_description} multiline />
+          <ReadOnlyField label="Applications summary" value={product.applications} multiline />
+          <ReadOnlyField label="Industries served" value={product.industries_served} multiline />
+          <ReadOnlyField label="Key features" value={product.key_features} multiline />
+          <ReadOnlyField label="Technical summary" value={product.technical_specifications} multiline />
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Commercial details"
+        description="Operational values and media preview."
+      >
+        <div className="space-y-4">
+          <ReadOnlyField label="Unit of measurement" value={product.unit_of_measurement} />
+          <ReadOnlyField label="MOQ" value={product.moq} />
+          <ReadOnlyField label="Packing size" value={product.available_packing_size} />
+          <ReadOnlyField label="Sort order" value={String(product.sort_order ?? 0)} />
+          <ReadOnlyField label="Created" value={product.createdAt ? new Date(product.createdAt).toLocaleString() : ""} />
+          <ReadOnlyField label="Updated" value={product.updatedAt ? new Date(product.updatedAt).toLocaleString() : ""} />
+          <div className="space-y-2">
+            <Label className="text-slate-700">Images</Label>
+            {mediaItems.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {mediaItems.map((item, index) => (
+                  <div key={`${item.url}-${index}`} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                    {item.url && item.type?.startsWith?.("image/") ? (
+                      <img src={item.url} alt={item.name ?? product.name ?? `Product image ${index + 1}`} className="h-40 w-full object-cover" />
+                    ) : (
+                      <div className="flex h-40 items-center justify-center text-sm text-slate-500">No preview</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">No images added.</div>
+            )}
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Application rows"
+        description="Structured usage details entered for this product."
+        className="xl:col-span-2"
+      >
+        <RepeatableRowsPreview
+          rows={product.application_rows}
+          emptyLabel="No application rows added."
+          columns={["title", "description"]}
+        />
+      </SectionCard>
+
+      <SectionCard
+        title="Technical data rows"
+        description="Structured technical properties entered for this product."
+        className="xl:col-span-2"
+      >
+        <RepeatableRowsPreview
+          rows={product.specification_rows}
+          emptyLabel="No technical rows added."
+          columns={["property", "value", "unit", "notes"]}
+        />
+      </SectionCard>
+    </div>
+  );
 }
 
 function ProductEditorDialog({
@@ -883,6 +1006,59 @@ function Field({
         {label} {required ? "*" : ""}
       </Label>
       {children}
+    </div>
+  );
+}
+
+function ReadOnlyField({
+  label,
+  value,
+  multiline,
+}: {
+  label: string;
+  value?: string | null;
+  multiline?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-slate-700">{label}</Label>
+      <div className={`rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 ${multiline ? "min-h-20 whitespace-pre-wrap" : ""}`}>
+        {value?.trim() ? value : "Not provided"}
+      </div>
+    </div>
+  );
+}
+
+function RepeatableRowsPreview({
+  rows,
+  columns,
+  emptyLabel,
+}: {
+  rows?: RepeatableRow[];
+  columns: string[];
+  emptyLabel: string;
+}) {
+  if (!rows?.length) {
+    return <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">{emptyLabel}</div>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {rows.map((row, index) => (
+        <div key={row.id ?? index} className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Row {index + 1}</div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {columns.map((column) => (
+              <div key={column}>
+                <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{column}</div>
+                <div className="mt-1 text-sm text-slate-800 whitespace-pre-wrap">
+                  {String((row as Record<string, unknown>)[column] ?? "").trim() || "Not provided"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

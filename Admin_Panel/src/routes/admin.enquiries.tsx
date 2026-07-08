@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { useAdminSearch } from "@/components/admin/admin-search";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Eye, Mail, Phone, Search, Trash2 } from "lucide-react";
+import { Eye, Mail, Phone, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -35,10 +35,17 @@ type Enquiry = {
 
 function EnquiriesPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Enquiry | null>(null);
   const [toDelete, setToDelete] = useState<Enquiry | null>(null);
+  const { query, configure } = useAdminSearch();
+
+  useEffect(() => {
+    configure({
+      enabled: true,
+      placeholder: "Search enquiries by customer, product, email, or mobile",
+    });
+  }, [configure]);
 
   const { data: enquiries = [], isLoading } = useQuery({
     queryKey: ["enquiries"],
@@ -66,12 +73,12 @@ function EnquiriesPage() {
 
   const filtered = useMemo(() => {
     return enquiries.filter((enquiry) => {
-      const query = search.toLowerCase();
+      const normalizedQuery = query.toLowerCase();
       const matchesStatus = statusFilter === "all" || enquiry.status === statusFilter;
-      const matchesSearch = [enquiry.customer_name, enquiry.mobile, enquiry.email ?? "", enquiry.product_name ?? "", enquiry.message ?? ""].join(" ").toLowerCase().includes(query);
+      const matchesSearch = [enquiry.customer_name, enquiry.mobile, enquiry.email ?? "", enquiry.product_name ?? "", enquiry.message ?? ""].join(" ").toLowerCase().includes(normalizedQuery);
       return matchesStatus && matchesSearch;
     });
-  }, [enquiries, search, statusFilter]);
+  }, [enquiries, query, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -85,10 +92,6 @@ function EnquiriesPage() {
 
       <Card className="rounded-[1.75rem] border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap gap-3">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search customer, product, email, or mobile" className="pl-9" />
-          </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>

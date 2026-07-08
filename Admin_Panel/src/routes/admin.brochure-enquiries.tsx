@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { useAdminSearch } from "@/components/admin/admin-search";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Eye, Mail, Trash2, Search } from "lucide-react";
+import { Eye, Mail, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -24,9 +24,16 @@ type BrochureEnquiry = {
 
 function BrochureEnquiriesPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<BrochureEnquiry | null>(null);
   const [toDelete, setToDelete] = useState<BrochureEnquiry | null>(null);
+  const { query, configure } = useAdminSearch();
+
+  useEffect(() => {
+    configure({
+      enabled: true,
+      placeholder: "Search brochure requests by name or email",
+    });
+  }, [configure]);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["brochure-enquiries"],
@@ -43,9 +50,9 @@ function BrochureEnquiriesPage() {
   });
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = query.toLowerCase();
     return items.filter((it) => [it.name, it.email].join(" ").toLowerCase().includes(q));
-  }, [items, search]);
+  }, [items, query]);
 
   return (
     <div className="space-y-6">
@@ -59,10 +66,6 @@ function BrochureEnquiriesPage() {
 
       <Card className="rounded-[1.75rem] border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap gap-3">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or email" className="pl-9" />
-          </div>
           <Badge className="rounded-full bg-slate-100 text-slate-700">{filtered.length} requests</Badge>
         </div>
 

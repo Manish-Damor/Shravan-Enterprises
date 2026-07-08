@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { AdminSearchProvider, type AdminSearchConfig } from "@/components/admin/admin-search";
 import { cn } from "@/lib/utils";
 import {
   BarChart3,
@@ -17,6 +18,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Search,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -47,13 +49,19 @@ export function AdminShell({ children }: { children?: ReactNode }) {
   const navigate = useNavigate();
   const path = useRouterState({ select: (state) => state.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [searchDraft, setSearchDraft] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchConfig, setSearchConfig] = useState<AdminSearchConfig>({
+    placeholder: "Search this section",
+    enabled: false,
+  });
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setSearch("");
+        setSearchDraft("");
+        setSearchQuery("");
       }
     };
 
@@ -66,13 +74,41 @@ export function AdminShell({ children }: { children?: ReactNode }) {
     [path],
   );
 
+  useEffect(() => {
+    setSearchDraft("");
+    setSearchQuery("");
+    setSearchConfig({
+      placeholder: "Search this section",
+      enabled: false,
+    });
+  }, [path]);
+
+  const submitSearch = () => {
+    setSearchQuery(searchDraft.trim());
+  };
+
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#f4f7fb_30%,#eef2f8_100%)] text-foreground">
-      <div className="flex min-h-screen">
-        <aside className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-slate-950 text-slate-100 shadow-2xl transition-transform lg:translate-x-0 xl:w-80",
-          mobileOpen ? "translate-x-0" : "-translate-x-full",
-        )}>
+    <AdminSearchProvider
+      value={{
+        draft: searchDraft,
+        query: searchQuery,
+        enabled: searchConfig.enabled ?? true,
+        placeholder: searchConfig.placeholder,
+        setDraft: setSearchDraft,
+        submit: submitSearch,
+        reset: () => {
+          setSearchDraft("");
+          setSearchQuery("");
+        },
+        configure: setSearchConfig,
+      }}
+    >
+      <div className="min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#f4f7fb_30%,#eef2f8_100%)] text-foreground">
+        <div className="flex min-h-screen">
+          <aside className={cn(
+            "fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200 bg-slate-950 text-slate-100 shadow-2xl transition-transform lg:translate-x-0 xl:w-80",
+            mobileOpen ? "translate-x-0" : "-translate-x-full",
+          )}>
           <div className="border-b border-white/10 px-5 py-5 xl:px-6">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 via-blue-500 to-emerald-500 text-white shadow-lg shadow-blue-500/20">
@@ -152,48 +188,69 @@ export function AdminShell({ children }: { children?: ReactNode }) {
           />
         ) : null}
 
-        <div className="flex min-h-screen flex-1 flex-col lg:pl-72 xl:pl-80">
-          <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
-            <div className="flex items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-              <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>
-                <Menu className="h-4 w-4" />
-              </Button>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.24em] text-slate-500">
-                  <Warehouse className="h-3.5 w-3.5" />
-                  {activeItem?.label ?? "Admin"}
+          <div className="flex min-h-screen flex-1 flex-col lg:pl-72 xl:pl-80">
+            <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
+              <div className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+                <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>
+                  <Menu className="h-4 w-4" />
+                </Button>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.24em] text-slate-500">
+                    <Warehouse className="h-3.5 w-3.5" />
+                    {activeItem?.label ?? "Admin"}
+                  </div>
+                  <div className="truncate text-sm text-slate-600">Manage products, users, enquiries, and website content from one simple workspace.</div>
                 </div>
-                <div className="truncate text-sm text-slate-600">Manage products, users, enquiries, and website content from one simple workspace.</div>
-              </div>
 
-              <div className="hidden lg:block w-[300px] xl:w-[340px]">
-                <Input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search products, categories, enquiries..."
-                  className="rounded-2xl border-slate-200 bg-slate-50"
-                />
-              </div>
+                {searchConfig.enabled ? (
+                  <div className="order-3 w-full md:order-none md:w-[320px] xl:w-[340px]">
+                    <div className="relative">
+                      <Input
+                        value={searchDraft}
+                        onChange={(event) => setSearchDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            submitSearch();
+                          }
+                        }}
+                        placeholder={searchConfig.placeholder}
+                        className="rounded-2xl border-slate-200 bg-slate-50 pr-11"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Search this section"
+                        className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2 rounded-xl text-slate-500 hover:bg-slate-200/70 hover:text-slate-900"
+                        onClick={submitSearch}
+                      >
+                        <Search className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
 
-              <div className="hidden md:flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white">
-                  <Layers3 className="h-4 w-4" />
+                <div className="hidden md:flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white">
+                    <Layers3 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">{user?.email ?? user?.phone ?? "Admin"}</div>
+                    <div className="text-xs text-slate-500">{isAdmin ? "Full access" : "Limited access"}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm font-medium">{user?.email ?? user?.phone ?? "Admin"}</div>
-                  <div className="text-xs text-slate-500">{isAdmin ? "Full access" : "Limited access"}</div>
-                </div>
               </div>
-            </div>
-          </header>
+            </header>
 
-          <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
-            <div className="mx-auto w-full max-w-[1680px]">
-              {children ?? <Outlet />}
-            </div>
-          </main>
+            <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8">
+              <div className="mx-auto w-full max-w-[1680px]">
+                {children ?? <Outlet />}
+              </div>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </AdminSearchProvider>
   );
 }

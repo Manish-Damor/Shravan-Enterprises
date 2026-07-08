@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { useAdminSearch } from "@/components/admin/admin-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowDown, ArrowUp, Eye, EyeOff, FolderTree, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, EyeOff, FolderTree, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { MediaDropzone, type MediaValue } from "@/components/admin/media-dropzone";
 
@@ -50,10 +51,18 @@ const defaultCategories = [
 
 function CategoriesPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<Category | null>(null);
+  const [viewing, setViewing] = useState<Category | null>(null);
   const [open, setOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Category | null>(null);
+  const { query, configure } = useAdminSearch();
+
+  useEffect(() => {
+    configure({
+      enabled: true,
+      placeholder: "Search categories by name or slug",
+    });
+  }, [configure]);
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["categories"],
@@ -125,9 +134,16 @@ function CategoriesPage() {
   });
 
   const filtered = categories.filter((category) => {
-    const query = search.toLowerCase();
-    return category.name.toLowerCase().includes(query) || category.slug.toLowerCase().includes(query);
+    const normalizedQuery = query.toLowerCase();
+    return category.name.toLowerCase().includes(normalizedQuery) || category.slug.toLowerCase().includes(normalizedQuery);
   });
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) {
+      setEditing(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -155,10 +171,6 @@ function CategoriesPage() {
 
       <Card className="rounded-[1.75rem] border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-[260px] flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search categories by name or slug" className="pl-9" />
-          </div>
           <Badge className="rounded-full bg-slate-100 text-slate-700 hover:bg-slate-100">{categories.length} total categories</Badge>
         </div>
 
@@ -205,8 +217,11 @@ function CategoriesPage() {
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toggleStatus.mutate(category)}>
                         {category.status === "active" ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditing(category); setOpen(true); }}>
-                        <FolderTree className="h-4 w-4" />
+                      <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setViewing(category)}>
+                        View
+                      </Button>
+                      <Button size="sm" variant="ghost" className="rounded-xl" onClick={() => { setEditing(category); setOpen(true); }}>
+                        Edit
                       </Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setToDelete(category)}>
                         <Trash2 className="h-4 w-4 text-rose-500" />
@@ -221,7 +236,23 @@ function CategoriesPage() {
         </div>
       </Card>
 
-      <CategoryDialog open={open} onOpenChange={setOpen} editing={editing} categories={categories} onSave={(value) => save.mutate(value)} saving={save.isPending} />
+      <CategoryDialog open={open} onOpenChange={handleDialogOpenChange} editing={editing} categories={categories} onSave={(value) => save.mutate(value)} saving={save.isPending} />
+
+      <Dialog open={!!viewing} onOpenChange={(openState) => !openState && setViewing(null)}>
+        <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto rounded-[1.75rem] bg-slate-50">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-semibold text-slate-950">
+              {viewing?.name ?? "Category details"}
+            </DialogTitle>
+          </DialogHeader>
+          {viewing ? (
+            <CategoryViewDialogContent
+              category={viewing}
+              parentName={viewing.parent_id ? parentMap.get(viewing.parent_id) ?? "Unknown" : "Top level"}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!toDelete} onOpenChange={(openState) => !openState && setToDelete(null)}>
         <AlertDialogContent>
@@ -234,6 +265,63 @@ function CategoriesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+function CategoryViewDialogContent({
+  category,
+  parentName,
+}: {
+  category: Category;
+  parentName: string;
+}) {
+  const mediaItems = [
+    { label: "Banner image", value: category.banner_image },
+    { label: "Icon", value: category.icon },
+  ];
+
+  return (
+    <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+      <Card className="rounded-[1.5rem] border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-5">
+          <h3 className="text-lg font-semibold text-slate-950">Category overview</h3>
+          <p className="mt-1 text-sm text-slate-600">Read-only information for quick review before editing.</p>
+        </div>
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Badge className="rounded-full bg-slate-950 text-white hover:bg-slate-950">{category.status ?? "active"}</Badge>
+            <Badge variant="secondary" className="rounded-full">{parentName}</Badge>
+            <Badge variant="secondary" className="rounded-full">Sort order: {category.sort_order ?? 0}</Badge>
+          </div>
+          <ReadOnlyCategoryField label="Slug" value={category.slug} />
+          <ReadOnlyCategoryField label="Short description" value={category.short_description} multiline />
+          <ReadOnlyCategoryField label="Long description" value={category.description} multiline />
+          <ReadOnlyCategoryField label="SEO title" value={category.seo_title} />
+          <ReadOnlyCategoryField label="SEO description" value={category.seo_description} multiline />
+        </div>
+      </Card>
+
+      <Card className="rounded-[1.5rem] border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-5">
+          <h3 className="text-lg font-semibold text-slate-950">Media preview</h3>
+          <p className="mt-1 text-sm text-slate-600">Current banner and icon assigned to this category.</p>
+        </div>
+        <div className="space-y-4">
+          {mediaItems.map((item) => (
+            <div key={item.label} className="space-y-2">
+              <Label className="text-slate-700">{item.label}</Label>
+              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                {item.value?.url && item.value.type?.startsWith?.("image/") ? (
+                  <img src={item.value.url} alt={item.value.name ?? item.label} className="h-48 w-full object-cover" />
+                ) : (
+                  <div className="flex h-48 items-center justify-center text-sm text-slate-500">No image added</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
@@ -367,5 +455,24 @@ function CategoryDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ReadOnlyCategoryField({
+  label,
+  value,
+  multiline,
+}: {
+  label: string;
+  value?: string | null;
+  multiline?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-slate-700">{label}</Label>
+      <div className={`rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 ${multiline ? "min-h-20 whitespace-pre-wrap" : ""}`}>
+        {value?.trim() ? value : "Not provided"}
+      </div>
+    </div>
   );
 }

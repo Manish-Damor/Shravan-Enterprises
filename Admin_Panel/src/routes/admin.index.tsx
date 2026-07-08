@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { apiFetch } from "@/lib/api";
+import { useAdminSearch } from "@/components/admin/admin-search";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +24,15 @@ type Product = {
 };
 
 function Dashboard() {
+  const { query, configure } = useAdminSearch();
+
+  useEffect(() => {
+    configure({
+      enabled: true,
+      placeholder: "Search dashboard products, modules, or metrics",
+    });
+  }, [configure]);
+
   const { data } = useQuery({
     queryKey: ["dashboard-overview"],
     queryFn: async () => {
@@ -48,8 +59,23 @@ function Dashboard() {
     },
   });
 
-  const recentProducts = [...(data?.products ?? [])].sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() - new Date(a.updatedAt ?? a.createdAt ?? 0).getTime()).slice(0, 6);
-  const featuredProducts = (data?.products ?? []).filter((product) => product.featured).slice(0, 4);
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const recentProducts = [...(data?.products ?? [])]
+    .filter((product) =>
+      !normalizedQuery ||
+      [product.name ?? "", product.subtitle ?? "", product.status ?? ""].join(" ").toLowerCase().includes(normalizedQuery),
+    )
+    .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() - new Date(a.updatedAt ?? a.createdAt ?? 0).getTime())
+    .slice(0, 6);
+
+  const featuredProducts = (data?.products ?? [])
+    .filter((product) => product.featured)
+    .filter((product) =>
+      !normalizedQuery ||
+      [product.name ?? "", product.subtitle ?? "", product.status ?? ""].join(" ").toLowerCase().includes(normalizedQuery),
+    )
+    .slice(0, 4);
 
   const cards = [
     { label: "Total Products", value: data?.totalProducts ?? 0, icon: Boxes, tone: "from-sky-500 to-blue-600" },
@@ -58,7 +84,7 @@ function Dashboard() {
     { label: "Total Enquiries", value: data?.enquiries ?? 0, icon: Inbox, tone: "from-cyan-500 to-blue-500" },
     { label: "Draft Products", value: data?.drafts ?? 0, icon: BadgeCheck, tone: "from-amber-500 to-orange-600" },
     { label: "Published Products", value: data?.published ?? 0, icon: TrendingUp, tone: "from-emerald-500 to-lime-600" },
-  ];
+  ].filter((card) => !normalizedQuery || card.label.toLowerCase().includes(normalizedQuery));
 
   const endpointModules = [
     { title: "Products", route: "/admin/products", endpoints: ["/api/products", "/api/categories"], icon: Boxes },
@@ -67,7 +93,10 @@ function Dashboard() {
     { title: "Brochure Requests", route: "/admin/brochure-enquiries", endpoints: ["/api/brochure-enquiries", "/api/brochure-enquiries/count"], icon: FileText },
     { title: "Users", route: "/admin/users", endpoints: ["/api/users", "/api/users/:id"], icon: Users },
     { title: "Content & Settings", route: "/admin/account", endpoints: ["/api/website-settings", "/api/banners", "/api/clients"], icon: Settings2 },
-  ];
+  ].filter((module) =>
+    !normalizedQuery ||
+    [module.title, module.route, ...module.endpoints].join(" ").toLowerCase().includes(normalizedQuery),
+  );
 
   return (
     <div className="space-y-6 xl:space-y-8">
